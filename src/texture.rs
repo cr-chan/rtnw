@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{color::Color, ray::Point3, rtwimage::*, interval::Interval};
+use crate::{color::Color, interval::Interval, perlin::Perlin, ray::Point3, rtwimage::*};
 
 pub trait Texture {
     fn value(&self, u: f64, v: f64, p: Point3) -> Color;
@@ -23,7 +23,7 @@ impl SoildColor {
 }
 
 impl Texture for SoildColor {
-    fn value(&self, _u: f64, _v: f64, _p : Point3) -> Color {
+    fn value(&self, _u: f64, _v: f64, _p: Point3) -> Color {
         self.color_value
     }
 }
@@ -98,5 +98,27 @@ impl Texture for ImageTexture {
             color_scale * pixel[1] as f64,
             color_scale * pixel[2] as f64,
         )
+    }
+}
+
+#[derive(Default)]
+pub struct NoiseTexture {
+    noise: Perlin,
+    scale: f64,
+}
+
+impl Texture for NoiseTexture {
+    fn value(&self, _u: f64, _v: f64, p: Point3) -> Color {
+        let s = self.scale * p;
+        Color::new(1.0, 1.0, 1.0) * 0.5 * (1.0 + (s.z() + 10.0 * self.noise.turb(s, 7)).sin())
+    }
+}
+
+impl NoiseTexture {
+    pub fn new(sc: f64) -> NoiseTexture {
+        Self {
+            noise: Perlin::default(),
+            scale: sc,
+        }
     }
 }

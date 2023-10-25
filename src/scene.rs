@@ -10,7 +10,7 @@ use crate::{
     ray::Point3,
     rtweekend::{random_double, random_double_range},
     sphere::Sphere,
-    vec3::Vec3, texture::{CheckerTexture, ImageTexture},
+    vec3::Vec3, texture::{CheckerTexture, ImageTexture, NoiseTexture},
 };
 
 pub fn random_sphere() -> Vec<(i32, i32, i32)>{
@@ -151,6 +151,35 @@ pub fn make_earth() -> Vec<(i32, i32, i32)> {
     camera.defocus_angle = 0.0;
     
     let image = camera.render(&HittableList::new(globe));
+
+    image
+
+}
+
+pub fn two_perlin_spheres() -> Vec<(i32, i32, i32)> {
+    let mut world = HittableList::default();
+    
+    // let pertext = Arc::new(NoiseTexture::default());
+
+    let pertext = Arc::new(NoiseTexture::new(4.0));
+
+    world.add(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, Lambertian::new(pertext.clone())));
+
+    world.add(Sphere::new(Point3::new(0.0, 2.0, 0.0), 2.0, Lambertian::new(pertext.clone())));
+
+    let mut camera = Camera::default();
+
+    camera.aspect_ratio = 16.0 / 9.0;
+    camera.image_width = 1200;
+    camera.samples_per_pixel = 50;
+    camera.max_depth = 50;
+    camera.vfov = 20.0;
+    camera.lookfrom = Point3::new(13.0, 2.0, 3.0);
+    camera.lookat = Point3::new(0.0, 0.0, 0.0);
+    camera.vup = Vec3::new(0.0, 1.0, 0.0);
+    camera.defocus_angle = 0.0;
+
+    let image = camera.render(&world);
 
     image
 

@@ -14,6 +14,7 @@ mod bvh;
 mod texture;
 mod scene;
 mod rtwimage;
+mod perlin;
 
 use std::{io::Write,time::Instant};
 
@@ -28,7 +29,8 @@ fn main() {
     let image = match a {
         1 => two_sphere(),
         2 => random_sphere(),
-        _ => make_earth(),
+        3 => make_earth(),
+        _ => two_perlin_spheres(),
     };
 
     eprintln!("Writing...");
