@@ -15,6 +15,7 @@ mod texture;
 mod scene;
 mod rtwimage;
 mod perlin;
+mod quad;
 
 use std::{io::Write,time::Instant};
 
@@ -30,7 +31,8 @@ fn main() {
         1 => two_sphere(),
         2 => random_sphere(),
         3 => make_earth(),
-        _ => two_perlin_spheres(),
+        4 => two_perlin_spheres(),
+        _ => quads(),
     };
 
     eprintln!("Writing...");
