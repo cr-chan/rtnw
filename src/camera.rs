@@ -1,4 +1,3 @@
-
 use crate::{
     color::Color,
     hittable::Hittable,
@@ -19,6 +18,7 @@ pub struct Camera {
     pub vup: Vec3,
     pub defocus_angle: f64,
     pub focus_dist: f64,
+    pub background: Color,
     u: Vec3,
     v: Vec3,
     w: Vec3,
@@ -54,6 +54,7 @@ impl Default for Camera {
             focus_dist: 10.0,
             defocus_disk_u: Vec3::default(),
             defocus_disk_v: Vec3::default(),
+            background: Color::default(),
         }
     }
 }
@@ -66,15 +67,14 @@ impl Camera {
         let collection = (0..self.image_height)
             .into_iter()
             .map(|j| {
-                eprintln!("\rScanlines remaining: {}",self.image_height - j);
+                eprintln!("\rScanlines remaining: {}", self.image_height - j);
                 (0..self.image_width)
                     .into_iter()
                     .map(|i| {
                         let mut pixel_color = Color::new(0.0, 0.0, 0.0);
                         for _ in 0..self.samples_per_pixel {
                             let r = self.get_ray(i, j);
-                            pixel_color =
-                                pixel_color + Camera::ray_color(&r, self.max_depth, world);
+                            pixel_color = pixel_color + self.ray_color(&r, self.max_depth, world);
                         }
                         let (x, y, z) = pixel_color.color(self.samples_per_pixel);
                         (x, y, z)
@@ -86,22 +86,21 @@ impl Camera {
         collection.into_iter().flatten().collect::<Vec<_>>()
     }
 
-    fn ray_color(r: &Ray, depth: i32, world: &dyn Hittable) -> Color {
+    fn ray_color(&self, r: &Ray, depth: i32, world: &dyn Hittable) -> Color {
         if depth <= 0 {
             return Color::new(0.0, 0.0, 0.0);
         }
-
         if let Some(rec) = world.hit(r, &mut Interval::new(0.001, rtweekend::INFINITY)) {
-            if let Some((r, c)) = rec.mat.scatter(r, &rec) {
-                return c * Self::ray_color(&r, depth - 1, world);
+            let color_from_emission = rec.mat.emit(rec.u, rec.v, rec.p);
+            if let Some((scattered, attenuation)) = rec.mat.scatter(r, &rec) {
+                let color_from_scatter = attenuation * self.ray_color(&scattered, depth - 1, world);
+                return color_from_emission + color_from_scatter;
+            } else {
+                return color_from_emission;
             }
-
-            return Color::new(0.0, 0.0, 0.0);
+        } else {
+            return self.background;
         }
-
-        let unit_direction = Vec3::unit_vector(r.direction());
-        let a = 0.5 * (unit_direction.y() + 1.0);
-        (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
     }
 
     fn initialize(&mut self) {
@@ -154,7 +153,7 @@ impl Camera {
         };
 
         let ray_direction = pixel_sample - ray_origin;
-        
+
         let ray_time = random_double();
 
         Ray::new_time(ray_origin, ray_direction, ray_time)

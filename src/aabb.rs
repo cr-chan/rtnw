@@ -1,6 +1,9 @@
+use std::ops::*;
+
 use crate::{
     interval::Interval,
     ray::{Point3, Ray},
+    vec3::Vec3,
 };
 
 #[derive(Clone, Copy, Default)]
@@ -12,7 +15,11 @@ pub struct Aabb {
 
 impl Aabb {
     pub fn new(x: &Interval, y: &Interval, z: &Interval) -> Self {
-        Self { x: *x, y: *y, z: *z }
+        Self {
+            x: *x,
+            y: *y,
+            z: *z,
+        }
     }
 
     pub fn new_points(a: &Point3, b: &Point3) -> Self {
@@ -32,10 +39,22 @@ impl Aabb {
     }
 
     pub fn pad(&self) -> Self {
-        let delta =0.0001;
-        let new_x = if self.x.size() >= delta {self.x} else {self.x.expand(delta)};
-        let new_y = if self.y.size() >= delta {self.y} else {self.y.expand(delta)};
-        let new_z = if self.z.size() >= delta {self.z} else {self.z.expand(delta)};
+        let delta = 0.0001;
+        let new_x = if self.x.size() >= delta {
+            self.x
+        } else {
+            self.x.expand(delta)
+        };
+        let new_y = if self.y.size() >= delta {
+            self.y
+        } else {
+            self.y.expand(delta)
+        };
+        let new_z = if self.z.size() >= delta {
+            self.z
+        } else {
+            self.z.expand(delta)
+        };
 
         Aabb::new(&new_x, &new_y, &new_z)
     }
@@ -99,4 +118,28 @@ impl Aabb {
         y: Interval::UNIVERSE,
         z: Interval::UNIVERSE,
     };
+}
+
+impl Add<Vec3> for Aabb {
+    type Output = Self;
+
+    fn add(self, rhs: Vec3) -> Self::Output {
+        Aabb {
+            x: self.x + rhs.x(),
+            y: self.y + rhs.y(),
+            z: self.z + rhs.z(),
+        }
+    }
+}
+
+impl Add<Aabb> for Vec3 {
+    type Output = Aabb;
+
+    fn add(self, rhs: Aabb) -> Self::Output {
+        Aabb {
+            x: self.x() + rhs.x,
+            y: self.y() + rhs.y,
+            z: self.z() + rhs.z,
+        }
+    }
 }

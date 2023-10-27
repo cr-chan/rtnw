@@ -1,13 +1,20 @@
 use std::sync::Arc;
 
-use crate::{color::Color, hittable::HitRecord, ray::Ray, rtweekend::random_double, vec3::Vec3, texture::{Texture, SoildColor}};
+use crate::{
+    color::Color,
+    hittable::HitRecord,
+    ray::{Point3, Ray},
+    rtweekend::random_double,
+    texture::{SoildColor, Texture},
+    vec3::Vec3,
+};
 
 pub trait Material {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Ray, Color)>;
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
+
+    fn emit(&self, _u: f64, _v: f64, _p: Point3) -> Color {
+        Color::new(0.0, 0.0, 0.0)
+    }
 }
 
 #[derive(Clone)]
@@ -19,18 +26,16 @@ impl Lambertian {
     pub fn new(a: Arc<dyn Texture>) -> Self {
         Self { albedo: a }
     }
-    
+
     pub fn new_color(a: Color) -> Self {
-        Self { albedo: Arc::new(SoildColor::new(a)) }
+        Self {
+            albedo: Arc::new(SoildColor::new(a)),
+        }
     }
 }
 
 impl Material for Lambertian {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let mut scatter_direction = rec.normal + Vec3::random_unit_vector();
 
         if scatter_direction.near_zero() {
@@ -59,13 +64,13 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let reflected = Vec3::reflect(Vec3::unit_vector(r_in.direction()), rec.normal);
-        let scattered = Ray::new_time(rec.p, reflected + self.fuzz * Vec3::random_in_unit_sphere(), r_in.time());
+        let scattered = Ray::new_time(
+            rec.p,
+            reflected + self.fuzz * Vec3::random_in_unit_sphere(),
+            r_in.time(),
+        );
         let attenuation = self.albedo;
         if Vec3::dot(scattered.direction(), rec.normal) > 0.0 {
             return Some((scattered, attenuation));
@@ -97,11 +102,7 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let attenuation = Color::new(1.0, 1.0, 1.0);
         let refraction_ratio = if rec.front_face {
             1.0 / self.ir
@@ -125,6 +126,57 @@ impl Material for Dielectric {
 
         let scattered = Ray::new_time(rec.p, direction, r_in.time());
 
+        Some((scattered, attenuation))
+    }
+}
+
+#[derive(Clone)]
+pub struct DiffuseLight {
+    emit: Arc<dyn Texture>,
+}
+
+impl DiffuseLight {
+    pub fn new(a: Arc<dyn Texture>) -> Self {
+        Self { emit: a }
+    }
+
+    pub fn new_color(c: Color) -> Self {
+        Self {
+            emit: Arc::new(SoildColor::new(c)),
+        }
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<(Ray, Color)> {
+        None
+    }
+
+    fn emit(&self, u: f64, v: f64, p: Point3) -> Color {
+        self.emit.value(u, v, p)
+    }
+}
+
+pub struct Isotropic {
+    albedo: Arc<dyn Texture>,
+}
+
+impl Isotropic {
+    pub fn new(c: Color) -> Self {
+        Self {
+            albedo: Arc::new(SoildColor::new(c)),
+        }
+    }
+
+    pub fn new_texture(a: Arc<dyn Texture>) -> Self {
+        Self { albedo: a }
+    }
+}
+
+impl Material for Isotropic {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
+        let scattered = Ray::new_time(rec.p, Vec3::random_unit_vector(), r_in.time());
+        let attenuation = self.albedo.value(rec.u, rec.v, rec.p);
         Some((scattered, attenuation))
     }
 }

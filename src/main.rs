@@ -16,6 +16,7 @@ mod scene;
 mod rtwimage;
 mod perlin;
 mod quad;
+mod constant_medium;
 
 use std::{io::Write,time::Instant};
 
@@ -25,14 +26,19 @@ use scene::*;
 fn main() {
     let start_time = Instant::now();
 
-    let a: usize = 0;
+    let a: usize = 3;
 
     let image = match a {
         1 => two_sphere(),
         2 => random_sphere(),
         3 => make_earth(),
         4 => two_perlin_spheres(),
-        _ => quads(),
+        5 => quads(),
+        6 => simple_light(),
+        7 => cornell_smoke(),
+        8 => cornell_box(),
+        _ => final_scene(),
+        
     };
 
     eprintln!("Writing...");

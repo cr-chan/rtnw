@@ -1,6 +1,6 @@
 use crate::{
     aabb::Aabb,
-    hittable::{HitRecord, Hittable},
+    hittable::{HitRecord, Hittable, HittableList},
     interval::Interval,
     material::Material,
     ray::Point3,
@@ -18,7 +18,7 @@ pub struct Quad<M: Material> {
     w: Vec3,
 }
 
-impl<M: Material> Quad<M> {
+impl<M: Material + 'static + Clone> Quad<M> {
     pub fn new(q: Point3, u: Vec3, v: Vec3, mat: M) -> Self {
         let n = Vec3::cross(u, v);
         let normal = Vec3::unit_vector(n);
@@ -34,6 +34,61 @@ impl<M: Material> Quad<M> {
             d,
             w,
         }
+    }
+
+    pub fn boxes(a: Point3, b: Point3, mat: M) -> HittableList {
+        let mut sides = HittableList::default();
+
+        let min = Point3::new(a.x().min(b.x()), a.y().min(b.y()), a.z().min(b.z()));
+        let max = Point3::new(a.x().max(b.x()), a.y().max(b.y()), a.z().max(b.z()));
+
+        let dx = Vec3::new(max.x() - min.x(), 0.0, 0.0);
+        let dy = Vec3::new(0.0, max.y() - min.y(), 0.0);
+        let dz = Vec3::new(0.0, 0.0, max.z() - min.z());
+
+        sides.add(Quad::new(
+            Point3::new(min.x(), min.y(), max.z()),
+            dx,
+            dy,
+            mat.clone(),
+        ));
+
+        sides.add(Quad::new(
+            Point3::new(max.x(), min.y(), max.z()),
+            -dz,
+            dy,
+            mat.clone(),
+        ));
+
+        sides.add(Quad::new(
+            Point3::new(max.x(), min.y(), min.z()),
+            -dx,
+            dy,
+            mat.clone(),
+        ));
+
+        sides.add(Quad::new(
+            Point3::new(min.x(), min.y(), min.z()),
+            dz,
+            dy,
+            mat.clone(),
+        ));
+
+        sides.add(Quad::new(
+            Point3::new(min.x(), max.y(), max.z()),
+            dx,
+            -dz,
+            mat.clone(),
+        ));
+
+        sides.add(Quad::new(
+            Point3::new(min.x(), min.y(), min.z()),
+            dx,
+            dz,
+            mat.clone(),
+        ));
+        
+        sides
     }
 }
 
