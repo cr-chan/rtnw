@@ -630,7 +630,7 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
     let mut camera = Camera::default();
 
     camera.aspect_ratio = 1.0;
-    camera.image_width = 800;
+    camera.image_width = 400;
     camera.samples_per_pixel = 100;
     camera.max_depth = 40;
     camera.background = Color::new(0.0, 0.0, 0.0);

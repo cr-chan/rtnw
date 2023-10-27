@@ -1,6 +1,6 @@
 use crate::{ray::Point3, rtweekend::random_int_range, vec3::Vec3};
 
-const POINT_COUNT: i32 = 256;
+const POINT_COUNT: usize = 256;
 
 pub struct Perlin {
     ranvec: Vec<Vec3>,
@@ -11,7 +11,7 @@ pub struct Perlin {
 
 impl Default for Perlin {
     fn default() -> Self {
-        let mut ranvec: Vec<Vec3> = Vec::new();
+        let mut ranvec: Vec<Vec3> = Vec::with_capacity(POINT_COUNT);
         for _ in 0..POINT_COUNT {
             ranvec.push(Vec3::unit_vector(Vec3::random_range(-1.0, 1.0)))
         }
@@ -43,8 +43,8 @@ impl Perlin {
         for di in 0..2 {
             for dj in 0..2 {
                 for dk in 0..2 {
-                    c[di][dj][dk] = self.ranvec[self.perm_x[((i + di as i32) & 255) as usize]
-                        as usize
+                    c[di][dj][dk] = self.ranvec[
+                        self.perm_x[((i + di as i32) & 255) as usize] as usize
                         ^ self.perm_y[((j + dj as i32) & 255) as usize] as usize
                         ^ self.perm_z[((k + dk as i32) & 255) as usize] as usize];
                 }
@@ -59,7 +59,7 @@ impl Perlin {
         let mut temp_p = p;
         let mut weight = 1.0;
         for _ in 0..depth {
-            accum += weight * self.noise(p);
+            accum += weight * self.noise(temp_p);
             weight *= 0.5;
             temp_p *= 2.0;
         }
@@ -67,18 +67,18 @@ impl Perlin {
     }
 
     fn perlin_generate_perm() -> Vec<i32> {
-        let mut p: Vec<i32> = Vec::new();
+        let mut p: Vec<i32> = Vec::with_capacity(POINT_COUNT);
 
         for i in 0..POINT_COUNT {
-            p.push(i);
+            p.push(i.try_into().unwrap());
         }
-        Self::permute(&mut p, POINT_COUNT as usize);
+        Self::permute(&mut p, POINT_COUNT);
 
         p
     }
 
     fn permute(p: &mut Vec<i32>, n: usize) {
-        for i in n - 1..0 {
+        for i in (0..n-1).rev() {
             let target = random_int_range(0, i as i32);
             p.swap(i, target as usize);
         }
