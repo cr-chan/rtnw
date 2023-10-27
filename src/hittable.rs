@@ -32,7 +32,7 @@ impl HitRecord<'_> {
     }
 }
 
-pub trait Hittable {
+pub trait Hittable: Sync + Send{
     fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord>;
 
     fn bounding_box(&self) -> &Aabb;

@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use crate::{color::Color, interval::Interval, perlin::Perlin, ray::Point3, rtwimage::*};
 
-pub trait Texture {
+pub trait Texture: Sync + Send {
     fn value(&self, u: f64, v: f64, p: Point3) -> Color;
 }
+
 
 pub struct SoildColor {
     color_value: Color,
@@ -27,6 +28,7 @@ impl Texture for SoildColor {
         self.color_value
     }
 }
+
 
 pub struct CheckerTexture {
     in_scale: f64,
@@ -67,6 +69,7 @@ impl Texture for CheckerTexture {
         }
     }
 }
+
 
 pub struct ImageTexture {
     image: RtwImage,

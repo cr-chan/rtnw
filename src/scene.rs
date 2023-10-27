@@ -597,9 +597,9 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
         Isotropic::new(Color::new(1.0, 1.0, 1.0)),
     ));
 
-    let emat = Lambertian::new(Arc::new(ImageTexture::new("earthmap.jpg")));
+/*     let emat = Lambertian::new(Arc::new(ImageTexture::new("earthmap.jpg")));
 
-    world.add(Sphere::new(Point3::new(400.0, 200.0, 400.0), 100.0, emat));
+    world.add(Sphere::new(Point3::new(400.0, 200.0, 400.0), 100.0, emat)); */
 
     let pertext = NoiseTexture::new(0.1);
 
@@ -630,8 +630,8 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
     let mut camera = Camera::default();
 
     camera.aspect_ratio = 1.0;
-    camera.image_width = 400;
-    camera.samples_per_pixel = 100;
+    camera.image_width = 800;
+    camera.samples_per_pixel = 50;
     camera.max_depth = 40;
     camera.background = Color::new(0.0, 0.0, 0.0);
     camera.vfov = 40.0;
