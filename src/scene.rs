@@ -11,12 +11,13 @@ use crate::{
     ray::Point3,
     rtweekend::{random_double, random_double_range},
     sphere::Sphere,
-    texture::{CheckerTexture, ImageTexture, NoiseTexture},
+    texture::{CheckerTexture, NoiseTexture},
     vec3::Vec3,
 };
 
 pub fn random_sphere() -> Vec<(i32, i32, i32)> {
     let mut world = HittableList::default();
+    let mut world1 = HittableList::default();
 
     let ground_material = Lambertian::new_color(Color { e: [0.5, 0.5, 0.5] });
 
@@ -60,11 +61,11 @@ pub fn random_sphere() -> Vec<(i32, i32, i32)> {
 
     let material1 = Dielectric::new(1.5);
 
-    world.add(Sphere::new(Point3 { e: [0.0, 1.0, 0.0] }, 1.0, material1));
+    world1.add(Sphere::new(Point3 { e: [0.0, 1.0, 0.0] }, 1.0, material1));
 
     let material2 = Lambertian::new_color(Color { e: [0.4, 0.2, 0.1] });
 
-    world.add(Sphere::new(
+    world1.add(Sphere::new(
         Point3 {
             e: [-4.0, 1.0, 0.0],
         },
@@ -74,9 +75,9 @@ pub fn random_sphere() -> Vec<(i32, i32, i32)> {
 
     let material3 = Metal::new(Color { e: [0.7, 0.6, 0.5] }, 0.0);
 
-    world.add(Sphere::new(Vec3 { e: [4.0, 1.0, 0.0] }, 1.0, material3));
+    world1.add(Sphere::new(Vec3 { e: [4.0, 1.0, 0.0] }, 1.0, material3));
 
-    world = HittableList::new(Arc::new(BvhNode::new(&mut world)));
+    world = HittableList::new(Arc::new(BvhNode::new(&mut world1)));
 
     let mut camera = Camera::default();
 
@@ -92,9 +93,7 @@ pub fn random_sphere() -> Vec<(i32, i32, i32)> {
     camera.defocus_angle = 0.6;
     camera.focus_dist = 10.0;
 
-    let image = camera.render(&world);
-
-    image
+    camera.render(&world)
 }
 
 pub fn two_sphere() -> Vec<(i32, i32, i32)> {
@@ -139,35 +138,7 @@ pub fn two_sphere() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    let image = camera.render(&world);
-
-    image
-}
-
-pub fn make_earth() -> Vec<(i32, i32, i32)> {
-    let mut globe = HittableList::default();
-    
-    let emat = Lambertian::new(Arc::new(ImageTexture::new("earthmap.jpg")));
-
-    globe.add(Sphere::new(Point3::new(400.0, 200.0, 400.0), 10.0, emat));
-
-
-    let mut camera = Camera::default();
-
-    camera.aspect_ratio = 16.0 / 9.0;
-    camera.image_width = 400;
-    camera.samples_per_pixel = 0;
-    camera.max_depth = 10;
-    camera.background = Color::new(0.7, 0.8, 1.0);
-    camera.vfov = 20.0;
-    camera.lookfrom = Point3::new(0.0, 0.0, 12.0);
-    camera.lookat = Point3::new(0.0, 0.0, 0.0);
-    camera.vup = Vec3::new(0.0, 1.0, 0.0);
-    camera.defocus_angle = 0.0;
-
-    let image = camera.render(&globe);
-
-    image
+    camera.render(&world)
 }
 
 pub fn two_perlin_spheres() -> Vec<(i32, i32, i32)> {
@@ -202,9 +173,9 @@ pub fn two_perlin_spheres() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    let image = camera.render(&world);
+    
 
-    image
+    camera.render(&world)
 }
 
 pub fn quads() -> Vec<(i32, i32, i32)> {
@@ -264,9 +235,9 @@ pub fn quads() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    let image = camera.render(&world);
+    
 
-    image
+    camera.render(&world)
 }
 
 pub fn simple_light() -> Vec<(i32, i32, i32)> {
@@ -295,7 +266,11 @@ pub fn simple_light() -> Vec<(i32, i32, i32)> {
         difflight.clone(),
     ));
 
-    world.add(Sphere::new(Point3::new(0.0, 7.0, 0.0), 2.0, difflight));
+    world.add(Sphere::new(
+        Point3::new(0.0, 7.0, 0.0),
+        2.0,
+        difflight.clone(),
+    ));
 
     let mut camera = Camera::default();
 
@@ -310,9 +285,9 @@ pub fn simple_light() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    let image = camera.render(&world);
+    
 
-    image
+    camera.render(&world)
 }
 
 pub fn cornell_box() -> Vec<(i32, i32, i32)> {
@@ -382,22 +357,8 @@ pub fn cornell_box() -> Vec<(i32, i32, i32)> {
         Point3::new(0.0, 0.0, 555.0),
         Vec3::new(555.0, 0.0, 0.0),
         Vec3::new(0.0, 555.0, 0.0),
-        white.clone(),
-    ));
-
-    /*     world.add(Quad::boxes(
-        Point3::new(130.0, 0.0, 65.0),
-        Point3::new(295.0, 165.0, 230.0),
-        white.clone(),
-    ));
-
-    world.add(Quad::boxes(
-        Point3::new(265.0, 0.0, 295.0),
-        Point3::new(430.0, 330.0, 460.0),
         white,
-    )); */
-
-    // world = HittableList::new(Arc::new(BvhNode::new(&mut world)));
+    ));
 
     let mut camera = Camera::default();
 
@@ -412,9 +373,9 @@ pub fn cornell_box() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    let image = camera.render(&world);
+    
 
-    image
+    camera.render(&world)
 }
 
 pub fn cornell_smoke() -> Vec<(i32, i32, i32)> {
@@ -433,8 +394,6 @@ pub fn cornell_smoke() -> Vec<(i32, i32, i32)> {
     let box1 = Arc::new(RotateY::new(box1, 15.0));
     let box1 = Translate::new(box1, Vec3::new(265.0, 0.0, 295.0));
 
-    // world.add(box1.clone());
-
     let box1 = Arc::new(box1);
 
     let box2 = Arc::new(Quad::boxes(
@@ -444,8 +403,6 @@ pub fn cornell_smoke() -> Vec<(i32, i32, i32)> {
     ));
     let box2 = Arc::new(RotateY::new(box2, -18.0));
     let box2 = Translate::new(box2, Vec3::new(130.0, 0.0, 65.0));
-
-    // world.add(box2.clone());
 
     let box2 = Arc::new(box2);
 
@@ -488,7 +445,7 @@ pub fn cornell_smoke() -> Vec<(i32, i32, i32)> {
         Point3::new(0.0, 0.0, 555.0),
         Vec3::new(555.0, 0.0, 0.0),
         Vec3::new(0.0, 555.0, 0.0),
-        white.clone(),
+        white,
     ));
 
     world.add(ConstantMedium::new(
@@ -503,8 +460,6 @@ pub fn cornell_smoke() -> Vec<(i32, i32, i32)> {
         Isotropic::new(Color::new(1.0, 1.0, 1.0)),
     ));
 
-    // world = HittableList::new(Arc::new(BvhNode::new(&mut world)));
-
     let mut camera = Camera::default();
 
     camera.aspect_ratio = 1.0;
@@ -518,9 +473,9 @@ pub fn cornell_smoke() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    let image = camera.render(&world);
+    
 
-    image
+    camera.render(&world)
 }
 
 pub fn final_scene() -> Vec<(i32, i32, i32)> {
@@ -551,12 +506,12 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
 
     world.add(BvhNode::new(&mut boxes1));
 
-    let light = DiffuseLight::new_color(Color::new(7.0, 7.0, 7.0));
+    let light = DiffuseLight::new_color(Color::new(9.0, 9.0, 9.0));
 
     world.add(Quad::new(
         Point3::new(123.0, 554.0, 147.0),
         Vec3::new(300.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 265.0),
+        Vec3::new(0.0, 0.0, 305.0),
         light,
     ));
 
@@ -597,10 +552,6 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
         Isotropic::new(Color::new(1.0, 1.0, 1.0)),
     ));
 
-/*     let emat = Lambertian::new(Arc::new(ImageTexture::new("earthmap.jpg")));
-
-    world.add(Sphere::new(Point3::new(400.0, 200.0, 400.0), 100.0, emat)); */
-
     let pertext = NoiseTexture::new(0.1);
 
     world.add(Sphere::new(
@@ -624,14 +575,14 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
 
     world.add(Translate::new(
         Arc::new(RotateY::new(Arc::new(BvhNode::new(&mut boxes2)), 15.0)),
-        Vec3::new(-100.0, 270.0, 395.0),
+        Vec3::new(450.0, 200.0, 400.0),
     ));
 
     let mut camera = Camera::default();
 
-    camera.aspect_ratio = 1.0;
-    camera.image_width = 800;
-    camera.samples_per_pixel = 50;
+    camera.aspect_ratio = 16.0 / 9.0;
+    camera.image_width = 1200;
+    camera.samples_per_pixel = 100;
     camera.max_depth = 40;
     camera.background = Color::new(0.0, 0.0, 0.0);
     camera.vfov = 40.0;
@@ -640,7 +591,7 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    let image = camera.render(&world);
+    
 
-    image
+    camera.render(&world)
 }

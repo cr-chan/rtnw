@@ -73,13 +73,16 @@ impl Camera {
                 (0..self.image_width)
                     .into_par_iter()
                     .map(|i| {
-                        let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-                        for _ in 0..self.samples_per_pixel {
+                        let pixel_color = (0..self.samples_per_pixel)
+                        .into_par_iter()
+                        .map(|_| {
                             let r = self.get_ray(i, j);
-                            pixel_color = pixel_color + self.ray_color(&r, self.max_depth, world);
-                        }
-                        let (x, y, z) = pixel_color.color(self.samples_per_pixel);
-                        (x, y, z)
+                            self.ray_color(&r, self.max_depth, world)
+                        })
+                        .reduce(|| Color::new(0.0, 0.0, 0.0), |a, b| a + b);
+
+                    let (x, y, z) = pixel_color.color(self.samples_per_pixel);
+                    (x, y, z)
                     })
                     .collect::<Vec<_>>()
             })
@@ -96,12 +99,12 @@ impl Camera {
             let color_from_emission = rec.mat.emit(rec.u, rec.v, rec.p);
             if let Some((scattered, attenuation)) = rec.mat.scatter(r, &rec) {
                 let color_from_scatter = attenuation * self.ray_color(&scattered, depth - 1, world);
-                return color_from_emission + color_from_scatter;
+                color_from_emission + color_from_scatter
             } else {
-                return color_from_emission;
+                color_from_emission
             }
         } else {
-            return self.background;
+            self.background
         }
     }
 

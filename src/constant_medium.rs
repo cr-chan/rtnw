@@ -66,7 +66,7 @@ impl<M: Material> Hittable for ConstantMedium<M> {
                 let t = rec1.t + hit_distance / ray_length;
                 let p = r.point_at_parameter(t);
 
-                return Some(HitRecord {
+                Some(HitRecord {
                     p,
                     normal: Vec3::new(1.0, 0.0, 0.0),
                     t,
@@ -74,14 +74,14 @@ impl<M: Material> Hittable for ConstantMedium<M> {
                     v: 0.0,
                     front_face: true,
                     mat: &self.phase_function,
-                });
+                })
             } else {
-                return None;
+                None
             }
             
         } else {
-            return None;
-        };
+            None
+        }
     }
 
     fn bounding_box(&self) -> &crate::aabb::Aabb {

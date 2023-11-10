@@ -58,7 +58,7 @@ impl BvhNode {
                 }
             }
         } else {
-            let _o = objects[start..end].sort_by(comparator);
+            objects[start..end].sort_by(comparator);
 
             let mid = start + object_span / 2;
             let left = Arc::new(Self::build(objects, start, mid));
@@ -90,7 +90,7 @@ impl BvhNode {
 
 impl Hittable for BvhNode {
     fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
-        let mut ray_t = ray_t.clone();
+        let mut ray_t = *ray_t;
         if !self.bbox.hit(r, &mut ray_t) {
             return None;
         }

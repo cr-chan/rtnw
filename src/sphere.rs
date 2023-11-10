@@ -37,7 +37,7 @@ impl<M: Material> Sphere<M> {
         }
     }
 
-    fn sphere_center(&self, time: f64) -> Point3 {
+    fn center(&self, time: f64) -> Point3 {
         self.center1 + time * self.center_vec
     }
 
@@ -55,7 +55,7 @@ impl<M: Material> Sphere<M> {
 impl<M: Material> Hittable for Sphere<M> {
     fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
         let center = if self.is_moving {
-            self.sphere_center(r.time())
+            self.center(r.time())
         } else {
             self.center1
         };

@@ -61,7 +61,7 @@ impl Hittable for Translate {
 
         if let Some(mut rec) = self.object.hit(&offset_r, ray_t) {
             rec.p += self.offset;
-            return Some(HitRecord {
+            Some(HitRecord {
                 p: rec.p,
                 normal: rec.normal,
                 t: rec.t,
@@ -69,9 +69,9 @@ impl Hittable for Translate {
                 v: rec.v,
                 front_face: rec.front_face,
                 mat: rec.mat,
-            });
+            })
         } else {
-            return None;
+            None
         }
     }
 
@@ -146,7 +146,7 @@ impl Hittable for RotateY {
             rec.normal[0] = self.cos_theta * rec.normal[0] + self.sin_theta * rec.normal[2];
             rec.normal[2] = -self.sin_theta * rec.normal[0] + self.cos_theta * rec.normal[2];
 
-            return Some(HitRecord {
+            Some(HitRecord {
                 p: rec.p,
                 normal: rec.normal,
                 t: rec.t,
@@ -154,9 +154,9 @@ impl Hittable for RotateY {
                 v: rec.v,
                 front_face: rec.front_face,
                 mat: rec.mat,
-            });
+            })
         } else {
-            return None;
+            None
         }
     }
 

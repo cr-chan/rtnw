@@ -13,7 +13,6 @@ mod aabb;
 mod bvh;
 mod texture;
 mod scene;
-mod rtwimage;
 mod perlin;
 mod quad;
 mod constant_medium;
@@ -26,22 +25,18 @@ use scene::*;
 fn main() {
     let start_time = Instant::now();
 
-    let a: usize = 0;
+    let a: usize = 2;
 
     let image = match a {
         1 => two_sphere(),
         2 => random_sphere(),
-        3 => make_earth(),
-        4 => two_perlin_spheres(),
-        5 => quads(),
-        6 => simple_light(),
-        7 => cornell_smoke(),
-        8 => cornell_box(),
+        3 => two_perlin_spheres(),
+        4 => quads(),
+        5 => simple_light(),
+        6 => cornell_smoke(),
+        7 => cornell_box(),
         _ => final_scene(),
-        
     };
-
-    eprintln!("Writing...");
 
     for p in 0..image.len(){
         let stdout = std::io::stdout();

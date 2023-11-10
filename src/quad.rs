@@ -3,7 +3,7 @@ use crate::{
     hittable::{HitRecord, Hittable, HittableList},
     interval::Interval,
     material::Material,
-    ray::Point3,
+    ray::{Point3, Ray},
     vec3::Vec3,
 };
 
@@ -85,15 +85,15 @@ impl<M: Material + 'static + Clone> Quad<M> {
             Point3::new(min.x(), min.y(), min.z()),
             dx,
             dz,
-            mat.clone(),
+            mat,
         ));
-        
+
         sides
     }
 }
 
 impl<M: Material> Hittable for Quad<M> {
-    fn hit(&self, r: &crate::ray::Ray, ray_t: &mut Interval) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
         let denom = Vec3::dot(self.normal, r.direction());
 
         if denom.abs() < 1e-8 {
@@ -137,7 +137,7 @@ fn set_bounding_box(q: Point3, u: Vec3, v: Vec3) -> Aabb {
 }
 
 fn is_interior(a: f64, b: f64) -> Option<(f64, f64)> {
-    if (a < 0.0) || (1.0 < a) || (b < 0.0) || (1.0 < b) {
+    if !(0.0..=1.0).contains(&a) || !(0.0..=1.0).contains(&b) {
         return None;
     }
 

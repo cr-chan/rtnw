@@ -1,9 +1,9 @@
-use std::ops::*;
+use std::{ops::*, sync::Arc};
 
 use crate::{
     interval::Interval,
     ray::{Point3, Ray},
-    vec3::Vec3,
+    vec3::Vec3, rtweekend::INFINITY, hittable::Hittable,
 };
 
 #[derive(Clone, Copy, Default)]
@@ -78,24 +78,22 @@ impl Aabb {
             } else {
                 2
             }
+        } else if y_size > z_size {
+            1
         } else {
-            if y_size > z_size {
-                1
-            } else {
-                2
-            }
+            2
         }
     }
 
     pub fn hit(&self, r: &Ray, ray_t: &mut Interval) -> bool {
         for a in 0..3 {
-            let inv0 = 1.0 / r.direction()[a];
+            let inv_d = 1.0 / r.direction()[a];
             let orig = r.origin()[a];
 
-            let mut t0 = (self.axis(a).min - orig) * inv0;
-            let mut t1 = (self.axis(a).max - orig) * inv0;
+            let mut t0 = (self.axis(a).min - orig) * inv_d;
+            let mut t1 = (self.axis(a).max - orig) * inv_d;
 
-            if inv0 < 0.0 {
+            if inv_d < 0.0 {
                 std::mem::swap(&mut t0, &mut t1);
             }
 
@@ -118,6 +116,30 @@ impl Aabb {
         y: Interval::UNIVERSE,
         z: Interval::UNIVERSE,
     };
+
+    pub fn surrounding_box(objects: &[Arc<dyn Hittable>]) -> Self {
+        let mut min_point = Point3::new(INFINITY, INFINITY, INFINITY);
+        let mut max_point = Point3::new(-INFINITY, -INFINITY, -INFINITY);
+
+        for object in objects {
+            let bbox = object.bounding_box();
+            min_point.e[0] = min_point.x().min(bbox.x.min);
+            min_point.e[1] = min_point.y().min(bbox.y.min);
+            min_point.e[2] = min_point.z().min(bbox.z.min);
+            max_point.e[0] = max_point.x().max(bbox.x.max);
+            max_point.e[1] = max_point.y().max(bbox.y.max);
+            max_point.e[2] = max_point.z().max(bbox.z.max);
+        }
+
+        Self::new_points(&min_point, &max_point)
+    }
+
+    pub fn surface_area(&self) -> f64 {
+        let dx = self.x.max - self.x.min;
+        let dy = self.y.max - self.y.min;
+        let dz = self.z.max - self.z.min;
+        2.0 * (dx*dy + dx*dz + dy*dz)
+    }
 }
 
 impl Add<Vec3> for Aabb {

@@ -17,9 +17,9 @@ impl Color {
         let mut b = self.z();
 
         let scale = 1.0 / sample_per_pixel as f64;
-        r = r * scale;
-        g = g * scale;
-        b = b * scale;
+        r *= scale;
+        g *= scale;
+        b *= scale;
 
         r = linear_to_gamma(r);
         g = linear_to_gamma(g);
