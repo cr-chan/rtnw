@@ -25,7 +25,7 @@ use scene::*;
 fn main() {
     let start_time = Instant::now();
 
-    let a: usize = 2;
+    let a: usize = 0;
 
     let image = match a {
         1 => two_sphere(),

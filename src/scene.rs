@@ -582,7 +582,7 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
 
     camera.aspect_ratio = 16.0 / 9.0;
     camera.image_width = 1200;
-    camera.samples_per_pixel = 100;
+    camera.samples_per_pixel = 5000;
     camera.max_depth = 40;
     camera.background = Color::new(0.0, 0.0, 0.0);
     camera.vfov = 40.0;
