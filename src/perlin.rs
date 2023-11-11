@@ -1,5 +1,3 @@
-use rayon::prelude::{ParallelIterator, IntoParallelRefIterator, IndexedParallelIterator};
-
 use crate::{ray::Point3, rtweekend::random_int_range, vec3::Vec3};
 
 const POINT_COUNT: usize = 256;
@@ -91,13 +89,13 @@ impl Perlin {
         let vv = v.powf(2.0) * (3.0 - 2.0 * v);
         let ww = w.powf(2.0) * (3.0 - 2.0 * w);
     
-        c.par_iter()
+        c.iter()
             .enumerate()
             .map(|(i, array_2d)| {
-                array_2d.par_iter()
+                array_2d.iter()
                     .enumerate()
                     .map(|(j, array_1d)| {
-                        array_1d.par_iter()
+                        array_1d.iter()
                             .enumerate()
                             .map(|(k, c_value)| {
                                 let weight_v = Vec3::new(u - i as f64, v - j as f64, w - k as f64);

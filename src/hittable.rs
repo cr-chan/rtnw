@@ -1,23 +1,13 @@
-use std::sync::Arc;
+use crate::{aabb::Aabb, interval::*, material::Material, ray::*, vec3::Vec3, rtweekend::{degrees_to_radians, INFINITY}};
 
-use crate::{
-    aabb::Aabb,
-    interval::*,
-    material::Material,
-    ray::*,
-    rtweekend::{degrees_to_radians, INFINITY},
-    vec3::Vec3,
-};
-
-#[derive(Clone, Copy)]
 pub struct HitRecord<'a> {
     pub p: Point3,
     pub normal: Vec3,
     pub t: f64,
-    pub u: f64,
-    pub v: f64,
     pub front_face: bool,
     pub mat: &'a dyn Material,
+    pub u: f64,
+    pub v: f64,
 }
 
 impl HitRecord<'_> {
@@ -32,32 +22,32 @@ impl HitRecord<'_> {
     }
 }
 
-pub trait Hittable: Sync + Send{
-    fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord>;
-
-    fn bounding_box(&self) -> &Aabb;
+pub trait Hittable: Sync {
+    fn hit(&self, r: &Ray, ray_t: &Interval) -> Option<HitRecord>;
+    fn bounding_box(&self) -> Option<Aabb>;
 }
 
-#[derive(Clone)]
 pub struct Translate {
-    object: Arc<dyn Hittable>,
+    object: Box<dyn Hittable>,
     offset: Vec3,
     bbox: Aabb,
 }
 
 impl Translate {
-    pub fn new(p: Arc<dyn Hittable>, displacement: Vec3) -> Self {
+    pub fn new(p: Box<dyn Hittable>, displacement: Vec3) -> Self {
+        let bbox = p.bounding_box();
+        
         Self {
-            object: p.clone(),
+            object: p,
             offset: displacement,
-            bbox: *p.bounding_box() + displacement,
+            bbox: bbox.unwrap() + displacement,
         }
     }
 }
 
 impl Hittable for Translate {
-    fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
-        let offset_r = Ray::new_time(r.origin() - self.offset, r.direction(), r.time());
+    fn hit(&self, r: &Ray, ray_t: &Interval) -> Option<HitRecord> {
+        let offset_r = Ray::new_with_time(r.origin() - self.offset, r.direction(), r.time());
 
         if let Some(mut rec) = self.object.hit(&offset_r, ray_t) {
             rec.p += self.offset;
@@ -75,20 +65,20 @@ impl Hittable for Translate {
         }
     }
 
-    fn bounding_box(&self) -> &Aabb {
-        &self.bbox
+    fn bounding_box(&self) -> Option<Aabb> {
+        Some(self.bbox)
     }
 }
 
 pub struct RotateY {
-    object: Arc<dyn Hittable>,
+    object: Box<dyn Hittable>,
     sin_theta: f64,
     cos_theta: f64,
     bbox: Aabb,
 }
 
 impl RotateY {
-    pub fn new(p: Arc<dyn Hittable>, angle: f64) -> Self {
+    pub fn new(p: Box<dyn Hittable>, angle: f64) -> Self {
         let radians = degrees_to_radians(angle);
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
@@ -100,9 +90,9 @@ impl RotateY {
         for i in 0..2 {
             for j in 0..2 {
                 for k in 0..2 {
-                    let x = i as f64 * bbox.x.max + (1.0 - j as f64) * bbox.x.min;
-                    let y = j as f64 * bbox.y.max + (1.0 - j as f64) * bbox.y.min;
-                    let z = k as f64 * bbox.z.max + (1.0 - k as f64) * bbox.z.min;
+                    let x = i as f64 * bbox.unwrap().x.max + (1.0 - j as f64) * bbox.unwrap().x.min;
+                    let y = j as f64 * bbox.unwrap().y.max + (1.0 - j as f64) * bbox.unwrap().y.min;
+                    let z = k as f64 * bbox.unwrap().z.max + (1.0 - k as f64) * bbox.unwrap().z.min;
 
                     let newx = cos_theta * x + sin_theta * z;
                     let newz = -sin_theta * x + cos_theta * z;
@@ -121,13 +111,13 @@ impl RotateY {
             object: p,
             sin_theta,
             cos_theta,
-            bbox: Aabb::new_points(&min, &max),
+            bbox: Aabb::new_from_points(min, max),
         }
     }
 }
 
 impl Hittable for RotateY {
-    fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: &Interval) -> Option<HitRecord> {
         let mut origin = r.origin();
         let mut direction = r.direction();
 
@@ -137,7 +127,7 @@ impl Hittable for RotateY {
         direction[0] = self.cos_theta * r.direction()[0] - self.sin_theta * r.direction()[2];
         direction[2] = self.sin_theta * r.direction()[0] + self.cos_theta * r.direction()[2];
 
-        let rotate_r = Ray::new_time(origin, direction, r.time());
+        let rotate_r = Ray::new_with_time(origin, direction, r.time());
 
         if let Some(mut rec) = self.object.hit(&rotate_r, ray_t) {
             rec.p[0] = self.cos_theta * rec.p[0] + self.sin_theta * rec.p[2];
@@ -160,47 +150,10 @@ impl Hittable for RotateY {
         }
     }
 
-    fn bounding_box(&self) -> &Aabb {
-        &self.bbox
+    fn bounding_box(&self) -> Option<Aabb>{
+        Some(self.bbox)
     }
 }
 
-#[derive(Clone, Default)]
-pub struct HittableList {
-    pub object: Vec<Arc<dyn Hittable>>,
-    bbox: Aabb,
-}
 
-impl HittableList {
-    pub fn new(object: Arc<dyn Hittable>) -> Self {
-        Self {
-            object: vec![object],
-            bbox: Aabb::default(),
-        }
-    }
 
-    pub fn add(&mut self, object: impl Hittable + 'static) {
-        self.bbox = Aabb::new_aabb(&self.bbox, object.bounding_box());
-        self.object.push(Arc::new(object));
-    }
-}
-
-impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
-        let mut hit_anything = None;
-        let mut closest_so_far = ray_t.max;
-
-        for object in self.object.iter() {
-            if let Some(hit) = object.hit(r, &mut Interval::new(ray_t.min, closest_so_far)) {
-                closest_so_far = hit.t;
-                hit_anything = Some(hit);
-            }
-        }
-
-        hit_anything
-    }
-
-    fn bounding_box(&self) -> &Aabb {
-        &self.bbox
-    }
-}

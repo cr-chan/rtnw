@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::{io::Write,time::Instant};
+
 mod camera;
 mod color;
 mod hittable;
@@ -12,31 +14,17 @@ mod vec3;
 mod aabb;
 mod bvh;
 mod texture;
+mod list;
 mod scene;
+mod rtimage;
 mod perlin;
-mod quad;
+mod quads;
 mod constant_medium;
-
-use std::{io::Write,time::Instant};
-
-use scene::*;
-
 
 fn main() {
     let start_time = Instant::now();
-
-    let a: usize = 0;
-
-    let image = match a {
-        1 => two_sphere(),
-        2 => random_sphere(),
-        3 => two_perlin_spheres(),
-        4 => quads(),
-        5 => simple_light(),
-        6 => cornell_smoke(),
-        7 => cornell_box(),
-        _ => final_scene(),
-    };
+    
+    let image = scene::earth();
 
     for p in 0..image.len(){
         let stdout = std::io::stdout();

@@ -1,72 +1,97 @@
-use std::sync::Arc;
+use crate::{color::Color, vec3::Vec3, rtimage::RtwImage, ray::Point3, interval::Interval, perlin::Perlin};
 
-use crate::{color::Color, perlin::Perlin, ray::Point3};
-
-pub trait Texture: Sync + Send {
-    fn value(&self, u: f64, v: f64, p: Point3) -> Color;
+pub trait Texture: Sync {
+    fn value(&self, u: f64, v: f64, p: Vec3) -> Color;
 }
 
-
-pub struct SoildColor {
+#[derive(Clone, Copy)]
+pub struct SolidColor {
     color_value: Color,
 }
 
-impl SoildColor {
+impl SolidColor {
     pub fn new(c: Color) -> Self {
         Self { color_value: c }
     }
 
-    pub fn new_color(red: f64, green: f64, blue: f64) -> Self {
+    pub fn new_from_rgb(red: f64, green: f64, blue: f64) -> Self {
         Self {
             color_value: Color::new(red, green, blue),
         }
     }
 }
 
-impl Texture for SoildColor {
-    fn value(&self, _u: f64, _v: f64, _p: Point3) -> Color {
+impl Texture for SolidColor {
+    fn value(&self, _u: f64, _v: f64, _p: Vec3) -> Color {
         self.color_value
     }
 }
 
-
-pub struct CheckerTexture {
-    in_scale: f64,
-    even: Arc<dyn Texture>,
-    odd: Arc<dyn Texture>,
+#[derive(Clone, Copy)]
+pub struct CheckerTexture<O: Texture, E: Texture> {
+    odd: O,
+    even: E,
+    inv_scale: f64,
 }
 
-impl CheckerTexture {
-    pub fn new(scale: f64, even: Arc<dyn Texture>, odd: Arc<dyn Texture>) -> Self {
+impl<O: Texture, E: Texture> CheckerTexture<O, E> {
+    pub fn new(scale: f64, even: E, odd: O) -> Self {
         Self {
-            in_scale: 1.0 / scale,
-            even,
             odd,
+            even,
+            inv_scale: 1.0 / scale,
         }
     }
-
-    pub fn new_color(scale: f64, c1: Color, c2: Color) -> Self {
-        Self {
-            in_scale: 1.0 / scale,
-            even: Arc::new(SoildColor::new(c1)),
-            odd: Arc::new(SoildColor::new(c2)),
-        }
-    }
+    
 }
 
-impl Texture for CheckerTexture {
-    fn value(&self, u: f64, v: f64, p: Point3) -> Color {
-        let x_integer = (self.in_scale * p.x()).floor() as i32;
-        let y_integer = (self.in_scale * p.y()).floor() as i32;
-        let z_integer = (self.in_scale * p.z()).floor() as i32;
+impl<O: Texture, E: Texture> Texture for CheckerTexture<O, E> {
+    fn value(&self, u: f64, v: f64, p: Vec3) -> Color {
+        let x_integer = (self.inv_scale * p.x()).floor();
+        let y_integer = (self.inv_scale * p.y()).floor();
+        let z_integer = (self.inv_scale * p.z()).floor();
 
-        let is_even = (x_integer + y_integer + z_integer) % 2 == 0;
+        let is_even = (x_integer + y_integer + z_integer) % 2.0 == 0.0;
 
         if is_even {
             self.even.value(u, v, p)
         } else {
             self.odd.value(u, v, p)
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct ImageTexture {
+    image: RtwImage
+}
+
+impl ImageTexture {
+    pub fn new(filname: &str) -> Self {
+        Self {
+            image: RtwImage::new(filname),
+        }
+    }
+}
+
+impl Texture for ImageTexture {
+    fn value(&self, u: f64, v: f64, _p: Point3) -> Color {
+        if self.image.height() == 0 {
+            return Color::new(0.0, 1.0, 1.0);
+        }
+        let u = Interval::new(0.0, 1.0).clamp(u);
+        let v = 1.0 - Interval::new(0.0, 1.0).clamp(v);
+
+        let i = (u * self.image.width() as f64) as usize;
+        let j = (v * self.image.height() as f64) as usize;
+        let pixel = self.image.pixel_data(i, j);
+
+        let color_scale = 1.0 / 255.0;
+        Color::new(
+            color_scale * pixel[0] as f64,
+            color_scale * pixel[1] as f64,
+            color_scale * pixel[2] as f64,
+        )
     }
 }
 

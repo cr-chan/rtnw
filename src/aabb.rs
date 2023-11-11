@@ -1,12 +1,8 @@
-use std::{ops::*, sync::Arc};
+use std::ops::Add;
 
-use crate::{
-    interval::Interval,
-    ray::{Point3, Ray},
-    vec3::Vec3, rtweekend::INFINITY, hittable::Hittable,
-};
+use crate::{interval::Interval, vec3::Vec3};
 
-#[derive(Clone, Copy, Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Aabb {
     pub x: Interval,
     pub y: Interval,
@@ -14,132 +10,84 @@ pub struct Aabb {
 }
 
 impl Aabb {
-    pub fn new(x: &Interval, y: &Interval, z: &Interval) -> Self {
-        Self {
-            x: *x,
-            y: *y,
-            z: *z,
-        }
+    pub fn new(x: Interval, y: Interval, z: Interval) -> Self {
+    
+        let _self = Self { x, y, z };
+        _self.pad_to_minimums()
     }
 
-    pub fn new_points(a: &Point3, b: &Point3) -> Self {
-        Self {
-            x: Interval::new(a[0].min(b[0]), a[0].max(b[0])),
-            y: Interval::new(a[1].min(b[1]), a[1].max(b[1])),
-            z: Interval::new(a[2].min(b[2]), a[2].max(b[2])),
-        }
+    pub fn new_from_points(p0: Vec3, p1: Vec3) -> Self {
+        let x = Interval::new(p0.x(), p1.x());
+        let y = Interval::new(p0.y(), p1.y());
+        let z = Interval::new(p0.z(), p1.z());
+        let _self = Self { x, y, z };
+        _self.pad_to_minimums()
     }
 
-    pub fn new_aabb(box0: &Aabb, box1: &Aabb) -> Self {
-        Self {
-            x: Interval::new_interval(&box0.x, &box1.x),
-            y: Interval::new_interval(&box0.y, &box1.y),
-            z: Interval::new_interval(&box0.z, &box1.z),
-        }
+    pub fn new_from_boxes(box1: Aabb, box2: Aabb) -> Self {
+        let x = Interval::new_from_interval(box1.x, box2.x);
+        let y = Interval::new_from_interval(box1.y, box2.y);
+        let z = Interval::new_from_interval(box1.z, box2.z);
+        Self { x, y, z }
     }
 
-    pub fn pad(&self) -> Self {
-        let delta = 0.0001;
-        let new_x = if self.x.size() >= delta {
-            self.x
-        } else {
-            self.x.expand(delta)
-        };
-        let new_y = if self.y.size() >= delta {
-            self.y
-        } else {
-            self.y.expand(delta)
-        };
-        let new_z = if self.z.size() >= delta {
-            self.z
-        } else {
-            self.z.expand(delta)
-        };
-
-        Aabb::new(&new_x, &new_y, &new_z)
-    }
-
-    pub fn axis(&self, n: usize) -> Interval {
-        match n {
+    pub fn axis(&self, a: usize) -> Interval {
+        match a {
+            0 => self.x,
             1 => self.y,
-            2 => self.z,
-            _ => self.x,
+            _ => self.z,
         }
     }
 
     pub fn longest_axis(&self) -> usize {
-        let x_size = self.x.size();
-        let y_size = self.y.size();
-        let z_size = self.z.size();
-
-        if x_size > y_size {
-            if x_size > z_size {
-                0
-            } else {
-                2
-            }
-        } else if y_size > z_size {
-            1
-        } else {
-            2
-        }
+        if self.x.size() > self.y.size() {
+            if self.x.size() > self.z.size() { 0 } else { 2 }
+        } else if self.y.size() > self.z.size() { 1 } else { 2 }
     }
 
-    pub fn hit(&self, r: &Ray, ray_t: &mut Interval) -> bool {
+    pub fn hit(&self, r: &crate::ray::Ray, t: &Interval) -> bool {
+        let mut tmin = t.min;
+        let mut tmax = t.max;
+
         for a in 0..3 {
             let inv_d = 1.0 / r.direction()[a];
-            let orig = r.origin()[a];
-
-            let mut t0 = (self.axis(a).min - orig) * inv_d;
-            let mut t1 = (self.axis(a).max - orig) * inv_d;
-
+            let mut t0 = (self.axis(a).min - r.origin()[a]) * inv_d;
+            let mut t1 = (self.axis(a).max - r.origin()[a]) * inv_d;
             if inv_d < 0.0 {
                 std::mem::swap(&mut t0, &mut t1);
             }
+            tmin = if t0 > tmin { t0 } else { tmin };
+            tmax = if t1 < tmax { t1 } else { tmax };
 
-            if t0 > ray_t.min {
-                ray_t.min = t0;
-            }
-            if t1 < ray_t.max {
-                ray_t.max = t1;
-            }
-
-            if ray_t.max <= ray_t.min {
+            if tmax <= tmin {
                 return false;
             }
         }
         true
     }
 
-    pub const UNIVERSE: Aabb = Aabb {
-        x: Interval::UNIVERSE,
-        y: Interval::UNIVERSE,
-        z: Interval::UNIVERSE,
+    fn pad_to_minimums(&self) -> Self {
+        let delta = 0.0001;
+        let x = if self.x.size() < delta {self.x.expand(delta)} else {self.x};
+        let y = if self.y.size() < delta {self.y.expand(delta)} else {self.y};
+        let z = if self.z.size() < delta {self.z.expand(delta)} else {self.z};
+        Self { x, y, z }
+    }
+
+    pub const EMPTY: Aabb = Aabb {
+        x: Interval {
+            min: std::f64::INFINITY,
+            max: std::f64::NEG_INFINITY,
+        },
+        y: Interval {
+            min: std::f64::INFINITY,
+            max: std::f64::NEG_INFINITY,
+        },
+        z: Interval {
+            min: std::f64::INFINITY,
+            max: std::f64::NEG_INFINITY,
+        },
     };
-
-    pub fn surrounding_box(objects: &[Arc<dyn Hittable>]) -> Self {
-        let mut min_point = Point3::new(INFINITY, INFINITY, INFINITY);
-        let mut max_point = Point3::new(-INFINITY, -INFINITY, -INFINITY);
-
-        for object in objects {
-            let bbox = object.bounding_box();
-            min_point.e[0] = min_point.x().min(bbox.x.min);
-            min_point.e[1] = min_point.y().min(bbox.y.min);
-            min_point.e[2] = min_point.z().min(bbox.z.min);
-            max_point.e[0] = max_point.x().max(bbox.x.max);
-            max_point.e[1] = max_point.y().max(bbox.y.max);
-            max_point.e[2] = max_point.z().max(bbox.z.max);
-        }
-
-        Self::new_points(&min_point, &max_point)
-    }
-
-    pub fn surface_area(&self) -> f64 {
-        let dx = self.x.max - self.x.min;
-        let dy = self.y.max - self.y.min;
-        let dz = self.z.max - self.z.min;
-        2.0 * (dx*dy + dx*dz + dy*dz)
-    }
 }
 
 impl Add<Vec3> for Aabb {
@@ -165,3 +113,5 @@ impl Add<Aabb> for Vec3 {
         }
     }
 }
+
+

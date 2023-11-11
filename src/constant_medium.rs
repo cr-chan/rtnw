@@ -1,21 +1,21 @@
-use std::{sync::Arc, f64::consts::E};
+use std::f64::consts::E;
 
 use crate::{
     hittable::{HitRecord, Hittable},
     interval::*,
     material::Material,
     rtweekend::{self, random_double},
-    vec3::Vec3,
+    vec3::Vec3, aabb::Aabb,
 };
 
 pub struct ConstantMedium<M: Material> {
-    boudary: Arc<dyn Hittable>,
+    boudary: Box<dyn Hittable>,
     neg_inv_density: f64,
     phase_function: M,
 }
 
 impl<M: Material> ConstantMedium<M> {
-    pub fn new(b: Arc<dyn Hittable>, d: f64, mat: M) -> Self {
+    pub fn new(b: Box<dyn Hittable>, d: f64, mat: M) -> Self {
         Self {
             boudary: b,
             neg_inv_density: -1.0 / d,
@@ -27,14 +27,14 @@ impl<M: Material> ConstantMedium<M> {
 #[allow(const_item_mutation)]
 
 impl<M: Material> Hittable for ConstantMedium<M> {
-    fn hit(&self, r: &crate::ray::Ray, ray_t: &mut Interval) -> Option<HitRecord> {
+    fn hit(&self, r: &crate::ray::Ray, ray_t: &Interval) -> Option<HitRecord> {
         const ENABLE_DEBUG: bool = false;
         let debugging: bool = ENABLE_DEBUG && random_double() < 0.00001;
 
-        if let Some(mut rec1) = self.boudary.hit(r, &mut Interval::UNIVERSE) {
+        if let Some(mut rec1) = self.boudary.hit(r, &Interval::UNIVERSE) {
             if let Some(mut rec2) = self
                 .boudary
-                .hit(r, &mut Interval::new(rec1.t + 0.0001, rtweekend::INFINITY))
+                .hit(r, &Interval::new(rec1.t + 0.0001, rtweekend::INFINITY))
             {
                 if debugging {
                     eprintln!("\nray_tmin={}, ray_tmax={}", rec1.t, rec2.t);
@@ -84,7 +84,7 @@ impl<M: Material> Hittable for ConstantMedium<M> {
         }
     }
 
-    fn bounding_box(&self) -> &crate::aabb::Aabb {
+    fn bounding_box(&self) -> std::option::Option<Aabb> {
         self.boudary.bounding_box()
     }
 }

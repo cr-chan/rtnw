@@ -1,3 +1,5 @@
+extern crate rayon;
+
 use rayon::prelude::*;
 
 use crate::{
@@ -69,20 +71,17 @@ impl Camera {
         let collection = (0..self.image_height)
             .into_par_iter()
             .map(|j| {
-                // eprintln!("\rScanlines remaining: {}", self.image_height - j);
+                eprintln!("\rScanlines remaining: {}", self.image_height - j);
                 (0..self.image_width)
                     .into_par_iter()
                     .map(|i| {
-                        let pixel_color = (0..self.samples_per_pixel)
-                        .into_par_iter()
-                        .map(|_| {
+                        let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                        for _ in 0..self.samples_per_pixel {
                             let r = self.get_ray(i, j);
-                            self.ray_color(&r, self.max_depth, world)
-                        })
-                        .reduce(|| Color::new(0.0, 0.0, 0.0), |a, b| a + b);
-
-                    let (x, y, z) = pixel_color.color(self.samples_per_pixel);
-                    (x, y, z)
+                            pixel_color += self.ray_color(&r, self.max_depth, world);
+                        }
+                        let (x, y, z) = pixel_color.color(self.samples_per_pixel);
+                        (x, y, z)
                     })
                     .collect::<Vec<_>>()
             })
@@ -95,10 +94,11 @@ impl Camera {
         if depth <= 0 {
             return Color::new(0.0, 0.0, 0.0);
         }
-        if let Some(rec) = world.hit(r, &mut Interval::new(0.001, rtweekend::INFINITY)) {
-            let color_from_emission = rec.mat.emit(rec.u, rec.v, rec.p);
-            if let Some((scattered, attenuation)) = rec.mat.scatter(r, &rec) {
-                let color_from_scatter = attenuation * self.ray_color(&scattered, depth - 1, world);
+
+        if let Some(rec) = world.hit(r, &Interval::new(0.001, rtweekend::INFINITY)) {
+            let color_from_emission = rec.mat.emitted(rec.u, rec.v, rec.p);
+            if let Some((scatterd, attenuation)) = rec.mat.scatter(r, &rec) {
+                let color_from_scatter = attenuation * self.ray_color(&scatterd, depth - 1, world);
                 color_from_emission + color_from_scatter
             } else {
                 color_from_emission
@@ -158,10 +158,9 @@ impl Camera {
         };
 
         let ray_direction = pixel_sample - ray_origin;
-
         let ray_time = random_double();
 
-        Ray::new_time(ray_origin, ray_direction, ray_time)
+        Ray::new_with_time(ray_origin, ray_direction, ray_time)
     }
 
     fn pixel_sample_square(&self) -> Vec3 {

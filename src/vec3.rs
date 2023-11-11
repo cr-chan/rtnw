@@ -115,6 +115,7 @@ impl Vec3 {
         let r_out_parallel = -(1.0 - r_out_perp.length_squared()).abs().sqrt() * n;
         r_out_perp + r_out_parallel
     }
+
 }
 
 impl Default for Vec3 {
@@ -236,3 +237,5 @@ impl IndexMut<usize> for Vec3 {
         &mut self.e[i]
     }
 }
+
+

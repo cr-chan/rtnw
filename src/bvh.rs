@@ -1,115 +1,155 @@
-use std::{cmp::Ordering, sync::Arc};
+use std::cmp::Ordering;
 
 use crate::{
     aabb::Aabb,
-    hittable::{HitRecord, Hittable, HittableList},
+    hittable::{HitRecord, Hittable},
     interval::Interval,
-    ray::Ray,
+    ray::Ray, list::HittableList,
 };
 
-#[derive(Clone)]
-pub struct BvhNode {
-    left: Arc<dyn Hittable>,
-    right: Arc<dyn Hittable>,
+enum BvhNode {
+    Branch { left: Box<Bvh>, right: Box<Bvh> },
+    Leaf(Box<dyn Hittable>),
+}
+
+pub struct Bvh {
+    tree: BvhNode,
     bbox: Aabb,
 }
 
-impl BvhNode {
-    pub fn new(list: &mut HittableList) -> Self {
-        let len = list.object.len();
-        Self::build(&mut list.object, 0, len)
+impl Bvh {
+    pub fn new(list: HittableList) -> Self {
+        let len = list.objects.len();
+        Self::build(list.objects, 0, len)
     }
 
-    fn build(src_objects: &mut Vec<Arc<dyn Hittable>>, start: usize, end: usize) -> Self {
-        let mut bbox = Aabb::default();
-        src_objects[start..end].iter().for_each(|obj| {
-            bbox = Aabb::new_aabb(&bbox, obj.bounding_box());
+    fn build(src_objects: Vec<Box<dyn Hittable>>, start: usize, end: usize) -> Self {
+        let mut bbox = Aabb::EMPTY;
+        src_objects[start..end].iter().for_each(|object| {
+            bbox = Aabb::new_from_boxes(bbox, object.bounding_box().unwrap());
         });
+
         let axis = bbox.longest_axis();
 
         let comparator = match axis {
-            0 => Self::box_x_compare,
-            1 => Self::box_y_compare,
-            _ => Self::box_z_compare,
+            0 => Self::box_compare_x,
+            1 => Self::box_compare_y,
+            _ => Self::box_compare_z,
         };
 
-        let objects = src_objects;
+        let mut object = src_objects;
 
         let object_span = end - start;
 
-        if object_span == 1 {
-            Self {
-                left: objects[start].clone(),
-                right: objects[start].clone(),
-                bbox,
-            }
-        } else if object_span == 2 {
-            if comparator(&objects[start], &objects[start + 1]) == std::cmp::Ordering::Less {
+        match object_span {
+            1 => {
+                let leaf = object.pop();
                 Self {
-                    left: objects[start].clone(),
-                    right: objects[start + 1].clone(),
-                    bbox,
-                }
-            } else {
-                Self {
-                    left: objects[start + 1].clone(),
-                    right: objects[start].clone(),
+                    tree: BvhNode::Leaf(leaf.unwrap()),
                     bbox,
                 }
             }
-        } else {
-            objects[start..end].sort_by(comparator);
 
-            let mid = start + object_span / 2;
-            let left = Arc::new(Self::build(objects, start, mid));
-            let right = Arc::new(Self::build(objects, mid, end));
-            Self { left, right, bbox }
+/*             2 => {
+                if comparator(&object[start], &object[start + 1]) == Ordering::Less {
+                    let left = Box::new(Self::build(
+                        object.drain(start + 1..end).collect(),
+                        start,
+                        start + 1,
+                    ));
+                    let right = Box::new(Self::build(object, start, start + 1));
+                    Self {
+                        tree: BvhNode::Branch { left, right },
+                        bbox,
+                    }
+                } else {
+                    let right = Box::new(Self::build(
+                        object.drain(start..end - 1).collect(),
+                        start,
+                        start + 1,
+                    ));
+                    let left = Box::new(Self::build(object, start, start + 1));
+                    Self {
+                        tree: BvhNode::Branch { left, right },
+                        bbox,
+                    }
+                }
+            } */
+
+            _ => {
+                object[start..end].sort_by(comparator);
+                let mid = start + object_span / 2;
+                let left = Box::new(Self::build(
+                    object.drain(object_span / 2..).collect(),
+                    start,
+                    mid,
+                ));
+                let right = Box::new(Self::build(object, start, mid));
+                Self {
+                    tree: BvhNode::Branch { left, right },
+                    bbox,
+                }
+            }
         }
     }
 
-    fn box_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis_index: usize) -> Ordering {
+    fn box_compare(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>, axis_index: usize) -> Ordering {
         a.bounding_box()
+            .unwrap()
             .axis(axis_index)
             .min
-            .partial_cmp(&b.bounding_box().axis(axis_index).min)
+            .partial_cmp(&b.bounding_box().unwrap().axis(axis_index).min)
             .unwrap()
     }
 
-    fn box_x_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
+    fn box_compare_x(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
         Self::box_compare(a, b, 0)
     }
 
-    fn box_y_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
+    fn box_compare_y(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
         Self::box_compare(a, b, 1)
     }
 
-    fn box_z_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>) -> Ordering {
+    fn box_compare_z(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
         Self::box_compare(a, b, 2)
     }
 }
 
-impl Hittable for BvhNode {
-    fn hit(&self, r: &Ray, ray_t: &mut Interval) -> Option<HitRecord> {
-        let mut ray_t = *ray_t;
-        if !self.bbox.hit(r, &mut ray_t) {
+impl Hittable for Bvh {
+    fn hit(&self, r: &Ray, ray_t: &Interval) -> Option<HitRecord> {
+        if !self.bbox.hit(r, ray_t) {
             return None;
         }
 
-        let hit = self.left.hit(r, &mut ray_t);
-        let mut ray = Interval::new(
-            ray_t.min,
-            if let Some(max) = hit {
-                max.t
-            } else {
-                ray_t.max
-            },
-        );
-        let result = self.right.hit(r, &mut ray).or(hit);
+        match &self.tree {
+            BvhNode::Leaf(object) => object.hit(r, ray_t),
+            BvhNode::Branch { left, right } => {
+                let hit_left = left.hit(r, ray_t);
+                let hit_right = right.hit(r, ray_t);
 
-        result
+                match (hit_left, hit_right) {
+                    (Some(hit_left), Some(hit_right)) => {
+                        if hit_left.t < hit_right.t {
+                            Some(hit_left)
+                        } else {
+                            Some(hit_right)
+                        }
+                    },
+                    (Some(hit_left), None) => Some(hit_left),
+                    (None, Some(hit_right)) => Some(hit_right),
+                    _ => None,
+                }
+                // hit_left.or(hit_right)
+/*                 if hit_right.is_some() {
+                    hit_right
+                } else {
+                    hit_left
+                } */
+            }
+        }
     }
 
-    fn bounding_box(&self) -> &Aabb {
-        &self.bbox
+    fn bounding_box(&self) -> Option<Aabb> {
+        Some(self.bbox)
     }
 }
