@@ -24,7 +24,7 @@ mod constant_medium;
 fn main() {
     let start_time = Instant::now();
     
-    let image = scene::earth();
+    let image = scene::final_scene();
 
     for p in 0..image.len(){
         let stdout = std::io::stdout();

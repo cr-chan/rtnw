@@ -50,37 +50,11 @@ impl Bvh {
                 }
             }
 
-/*             2 => {
-                if comparator(&object[start], &object[start + 1]) == Ordering::Less {
-                    let left = Box::new(Self::build(
-                        object.drain(start + 1..end).collect(),
-                        start,
-                        start + 1,
-                    ));
-                    let right = Box::new(Self::build(object, start, start + 1));
-                    Self {
-                        tree: BvhNode::Branch { left, right },
-                        bbox,
-                    }
-                } else {
-                    let right = Box::new(Self::build(
-                        object.drain(start..end - 1).collect(),
-                        start,
-                        start + 1,
-                    ));
-                    let left = Box::new(Self::build(object, start, start + 1));
-                    Self {
-                        tree: BvhNode::Branch { left, right },
-                        bbox,
-                    }
-                }
-            } */
-
             _ => {
                 object[start..end].sort_by(comparator);
                 let mid = start + object_span / 2;
                 let left = Box::new(Self::build(
-                    object.drain(object_span / 2..).collect(),
+                    object.drain(start..object_span / 2).collect(),
                     start,
                     mid,
                 ));
@@ -135,9 +109,7 @@ impl Hittable for Bvh {
                             Some(hit_right)
                         }
                     },
-                    (Some(hit_left), None) => Some(hit_left),
-                    (None, Some(hit_right)) => Some(hit_right),
-                    _ => None,
+                    (h, None) | (None, h) => h,
                 }
                 // hit_left.or(hit_right)
 /*                 if hit_right.is_some() {
