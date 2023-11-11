@@ -54,7 +54,7 @@ impl Bvh {
                 object[start..end].sort_by(comparator);
                 let mid = start + object_span / 2;
                 let left = Box::new(Self::build(
-                    object.drain(start..object_span / 2).collect(),
+                    object.drain(object_span / 2..).collect(),
                     start,
                     mid,
                 ));
@@ -102,21 +102,20 @@ impl Hittable for Bvh {
                 let hit_right = right.hit(r, ray_t);
 
                 match (hit_left, hit_right) {
-                    (Some(hit_left), Some(hit_right)) => {
-                        if hit_left.t < hit_right.t {
-                            Some(hit_left)
+                    (Some(left_hit), Some(right_hit)) => {
+                        if left_hit.t < right_hit.t {
+                            Some(left_hit)
                         } else {
-                            Some(hit_right)
+                            Some(right_hit)
                         }
                     },
-                    (h, None) | (None, h) => h,
+
+                    (Some(left_hit), None) => Some(left_hit),
+
+                    (None, Some(right_hit)) => Some(right_hit),
+
+                    (None, None) => None,
                 }
-                // hit_left.or(hit_right)
-/*                 if hit_right.is_some() {
-                    hit_right
-                } else {
-                    hit_left
-                } */
             }
         }
     }
