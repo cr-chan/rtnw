@@ -91,23 +91,6 @@ impl Hittable for Bvh {
 
                 right.hit(r, &r_t).or(hit_left)
 
-                /* let hit_right = right.hit(r, &r_t);
-
-                match (hit_left, hit_right) {
-                    (Some(left_hit), Some(right_hit)) => {
-                        if left_hit.t < right_hit.t {
-                            Some(left_hit)
-                        } else {
-                            Some(right_hit)
-                        }
-                    }
-
-                    (Some(left_hit), None) => Some(left_hit),
-
-                    (None, Some(right_hit)) => Some(right_hit),
-
-                    (None, None) => None,
-                } */
             }
         }
     }
