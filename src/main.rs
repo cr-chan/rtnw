@@ -1,32 +1,32 @@
 #![allow(dead_code)]
 
-use std::{io::Write,time::Instant};
+use std::{io::Write, time::Instant};
 
-mod camera;
-mod color;
-mod hittable;
-mod interval;
-mod material;
-mod ray;
-mod rtweekend;
-mod sphere;
-mod vec3;
 mod aabb;
 mod bvh;
-mod texture;
+mod camera;
+mod color;
+mod constant_medium;
+mod hittable;
+mod interval;
 mod list;
-mod scene;
-mod rtimage;
+mod material;
 mod perlin;
 mod quads;
-mod constant_medium;
+mod ray;
+mod rtimage;
+mod rtweekend;
+mod scene;
+mod sphere;
+mod texture;
+mod vec3;
 
 fn main() {
     let start_time = Instant::now();
-    
+
     let image = scene::final_scene();
 
-    for p in 0..image.len(){
+    for p in 0..image.len() {
         let stdout = std::io::stdout();
         let mut lock = stdout.lock();
 

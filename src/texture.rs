@@ -1,4 +1,6 @@
-use crate::{color::Color, vec3::Vec3, rtimage::RtwImage, ray::Point3, interval::Interval, perlin::Perlin};
+use crate::{
+    color::Color, interval::Interval, perlin::Perlin, ray::Point3, rtimage::RtwImage, vec3::Vec3,
+};
 
 pub trait Texture: Sync {
     fn value(&self, u: f64, v: f64, p: Vec3) -> Color;
@@ -42,7 +44,6 @@ impl<O: Texture, E: Texture> CheckerTexture<O, E> {
             inv_scale: 1.0 / scale,
         }
     }
-    
 }
 
 impl<O: Texture, E: Texture> Texture for CheckerTexture<O, E> {
@@ -63,7 +64,7 @@ impl<O: Texture, E: Texture> Texture for CheckerTexture<O, E> {
 
 #[derive(Clone)]
 pub struct ImageTexture {
-    image: RtwImage
+    image: RtwImage,
 }
 
 impl ImageTexture {

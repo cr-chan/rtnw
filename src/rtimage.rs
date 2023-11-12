@@ -23,7 +23,7 @@ impl RtwImage {
 
         let mut path = String::from(filename);
         for _ in 0..6 {
-          if let Some(result) = _self.load(&path) {
+            if let Some(result) = _self.load(&path) {
                 return result;
             }
             path = format!("../{}", path);

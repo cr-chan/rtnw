@@ -11,7 +11,6 @@ pub struct Aabb {
 
 impl Aabb {
     pub fn new(x: Interval, y: Interval, z: Interval) -> Self {
-    
         let _self = Self { x, y, z };
         _self.pad_to_minimums()
     }
@@ -41,8 +40,16 @@ impl Aabb {
 
     pub fn longest_axis(&self) -> usize {
         if self.x.size() > self.y.size() {
-            if self.x.size() > self.z.size() { 0 } else { 2 }
-        } else if self.y.size() > self.z.size() { 1 } else { 2 }
+            if self.x.size() > self.z.size() {
+                0
+            } else {
+                2
+            }
+        } else if self.y.size() > self.z.size() {
+            1
+        } else {
+            2
+        }
     }
 
     pub fn hit(&self, r: &crate::ray::Ray, t: &Interval) -> bool {
@@ -68,9 +75,21 @@ impl Aabb {
 
     fn pad_to_minimums(&self) -> Self {
         let delta = 0.0001;
-        let x = if self.x.size() < delta {self.x.expand(delta)} else {self.x};
-        let y = if self.y.size() < delta {self.y.expand(delta)} else {self.y};
-        let z = if self.z.size() < delta {self.z.expand(delta)} else {self.z};
+        let x = if self.x.size() < delta {
+            self.x.expand(delta)
+        } else {
+            self.x
+        };
+        let y = if self.y.size() < delta {
+            self.y.expand(delta)
+        } else {
+            self.y
+        };
+        let z = if self.z.size() < delta {
+            self.z.expand(delta)
+        } else {
+            self.z
+        };
         Self { x, y, z }
     }
 
@@ -113,5 +132,3 @@ impl Add<Aabb> for Vec3 {
         }
     }
 }
-
-

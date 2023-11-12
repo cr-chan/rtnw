@@ -1,11 +1,12 @@
 use std::f64::consts::E;
 
 use crate::{
+    aabb::Aabb,
     hittable::{HitRecord, Hittable},
     interval::*,
     material::Material,
     rtweekend::{self, random_double},
-    vec3::Vec3, aabb::Aabb,
+    vec3::Vec3,
 };
 
 pub struct ConstantMedium<M: Material> {
@@ -78,7 +79,6 @@ impl<M: Material> Hittable for ConstantMedium<M> {
             } else {
                 None
             }
-            
         } else {
             None
         }

@@ -4,7 +4,8 @@ use crate::{
     aabb::Aabb,
     hittable::{HitRecord, Hittable},
     interval::Interval,
-    ray::Ray, list::HittableList,
+    list::HittableList,
+    ray::Ray,
 };
 
 enum BvhNode {
@@ -32,60 +33,39 @@ impl Bvh {
         let axis = bbox.longest_axis();
 
         let comparator = match axis {
-            0 => Self::box_compare_x,
-            1 => Self::box_compare_y,
-            _ => Self::box_compare_z,
+            0 => box_compare_x,
+            1 => box_compare_y,
+            2 => box_compare_z,
+            _ => panic!("Invalid axis"),
         };
 
         let mut object = src_objects;
 
-        let object_span = end - start;
+        let object_span = object.len();
 
         match object_span {
             1 => {
-                let leaf = object.pop();
+                let bbox = object[start].bounding_box().unwrap();
+                let leaf = object.pop().unwrap();
                 Self {
-                    tree: BvhNode::Leaf(leaf.unwrap()),
+                    tree: BvhNode::Leaf(leaf),
                     bbox,
                 }
             }
 
             _ => {
-                object[start..end].sort_by(comparator);
-                let mid = start + object_span / 2;
-                let left = Box::new(Self::build(
-                    object.drain(object_span / 2..).collect(),
-                    start,
-                    mid,
-                ));
-                let right = Box::new(Self::build(object, start, mid));
+                object.sort_by(comparator);
+                let mid = object_span / 2;
+                let right = Box::new(Self::build(object.drain(mid..).collect(), start, mid));
+                let left = Box::new(Self::build(object, start, mid));
+                let l = left.bounding_box().unwrap();
+                let r = right.bounding_box().unwrap();
                 Self {
                     tree: BvhNode::Branch { left, right },
-                    bbox,
+                    bbox: Aabb::new_from_boxes(l, r),
                 }
             }
         }
-    }
-
-    fn box_compare(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>, axis_index: usize) -> Ordering {
-        a.bounding_box()
-            .unwrap()
-            .axis(axis_index)
-            .min
-            .partial_cmp(&b.bounding_box().unwrap().axis(axis_index).min)
-            .unwrap()
-    }
-
-    fn box_compare_x(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
-        Self::box_compare(a, b, 0)
-    }
-
-    fn box_compare_y(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
-        Self::box_compare(a, b, 1)
-    }
-
-    fn box_compare_z(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
-        Self::box_compare(a, b, 2)
     }
 }
 
@@ -99,7 +79,19 @@ impl Hittable for Bvh {
             BvhNode::Leaf(object) => object.hit(r, ray_t),
             BvhNode::Branch { left, right } => {
                 let hit_left = left.hit(r, ray_t);
-                let hit_right = right.hit(r, ray_t);
+
+                let r_t = Interval::new(
+                    ray_t.min,
+                    if let Some(max) = &hit_left {
+                        max.t
+                    } else {
+                        ray_t.max
+                    },
+                );
+
+                right.hit(r, &r_t).or(hit_left)
+
+                /* let hit_right = right.hit(r, &r_t);
 
                 match (hit_left, hit_right) {
                     (Some(left_hit), Some(right_hit)) => {
@@ -108,14 +100,14 @@ impl Hittable for Bvh {
                         } else {
                             Some(right_hit)
                         }
-                    },
+                    }
 
                     (Some(left_hit), None) => Some(left_hit),
 
                     (None, Some(right_hit)) => Some(right_hit),
 
                     (None, None) => None,
-                }
+                } */
             }
         }
     }
@@ -123,4 +115,25 @@ impl Hittable for Bvh {
     fn bounding_box(&self) -> Option<Aabb> {
         Some(self.bbox)
     }
+}
+
+fn box_compare(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>, axis_index: usize) -> Ordering {
+    a.bounding_box()
+        .unwrap()
+        .axis(axis_index)
+        .min
+        .partial_cmp(&b.bounding_box().unwrap().axis(axis_index).min)
+        .unwrap()
+}
+
+fn box_compare_x(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
+    box_compare(a, b, 0)
+}
+
+fn box_compare_y(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
+    box_compare(a, b, 1)
+}
+
+fn box_compare_z(a: &Box<dyn Hittable>, b: &Box<dyn Hittable>) -> Ordering {
+    box_compare(a, b, 2)
 }

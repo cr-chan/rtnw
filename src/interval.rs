@@ -42,7 +42,7 @@ impl Interval {
 
     pub fn expand(&self, x: f64) -> Self {
         let padding = x * 0.5;
-        
+
         Self {
             min: self.min - padding,
             max: self.max + padding,

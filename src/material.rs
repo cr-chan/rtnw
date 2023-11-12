@@ -1,11 +1,10 @@
-use crate::{color::Color, hittable::HitRecord, ray::Ray, rtweekend::random_double, vec3::Vec3, texture::Texture};
+use crate::{
+    color::Color, hittable::HitRecord, ray::Ray, rtweekend::random_double, texture::Texture,
+    vec3::Vec3,
+};
 
 pub trait Material: Sync {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Ray, Color)>;
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)>;
 
     fn emitted(&self, _u: f64, _v: f64, _p: Vec3) -> Color {
         Color::default()
@@ -24,11 +23,7 @@ impl<T: Texture> Lambertian<T> {
 }
 
 impl<T: Texture> Material for Lambertian<T> {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let mut scatter_direction = rec.normal + Vec3::random_unit_vector();
 
         if scatter_direction.near_zero() {
@@ -57,13 +52,13 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let reflected = Vec3::reflect(Vec3::unit_vector(r_in.direction()), rec.normal);
-        let scattered = Ray::new_with_time(rec.p, reflected + self.fuzz * Vec3::random_in_unit_sphere(), r_in.time());
+        let scattered = Ray::new_with_time(
+            rec.p,
+            reflected + self.fuzz * Vec3::random_in_unit_sphere(),
+            r_in.time(),
+        );
         let attenuation = self.albedo;
         if Vec3::dot(scattered.direction(), rec.normal) > 0.0 {
             return Some((scattered, attenuation));
@@ -95,11 +90,7 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(
-        &self,
-        r_in: &Ray,
-        rec: &HitRecord,
-    ) -> Option<(Ray, Color)> {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<(Ray, Color)> {
         let attenuation = Color::new(1.0, 1.0, 1.0);
         let refraction_ratio = if rec.front_face {
             1.0 / self.ir
@@ -139,11 +130,7 @@ impl<T: Texture> DiffuseLight<T> {
 }
 
 impl<T: Texture> Material for DiffuseLight<T> {
-    fn scatter(
-        &self,
-        _r_in: &Ray,
-        _rec: &HitRecord,
-    ) -> Option<(Ray, Color)> {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<(Ray, Color)> {
         None
     }
 

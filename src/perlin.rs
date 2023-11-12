@@ -43,8 +43,8 @@ impl Perlin {
         for di in 0..2 {
             for dj in 0..2 {
                 for dk in 0..2 {
-                    c[di][dj][dk] = self.ranvec[
-                        self.perm_x[((i + di as i32) & 255) as usize] as usize
+                    c[di][dj][dk] = self.ranvec[self.perm_x[((i + di as i32) & 255) as usize]
+                        as usize
                         ^ self.perm_y[((j + dj as i32) & 255) as usize] as usize
                         ^ self.perm_z[((k + dk as i32) & 255) as usize] as usize];
                 }
@@ -88,14 +88,16 @@ impl Perlin {
         let uu = u.powf(2.0) * (3.0 - 2.0 * u);
         let vv = v.powf(2.0) * (3.0 - 2.0 * v);
         let ww = w.powf(2.0) * (3.0 - 2.0 * w);
-    
+
         c.iter()
             .enumerate()
             .map(|(i, array_2d)| {
-                array_2d.iter()
+                array_2d
+                    .iter()
                     .enumerate()
                     .map(|(j, array_1d)| {
-                        array_1d.iter()
+                        array_1d
+                            .iter()
                             .enumerate()
                             .map(|(k, c_value)| {
                                 let weight_v = Vec3::new(u - i as f64, v - j as f64, w - k as f64);

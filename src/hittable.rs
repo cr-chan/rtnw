@@ -1,4 +1,11 @@
-use crate::{aabb::Aabb, interval::*, material::Material, ray::*, vec3::Vec3, rtweekend::{degrees_to_radians, INFINITY}};
+use crate::{
+    aabb::Aabb,
+    interval::*,
+    material::Material,
+    ray::*,
+    rtweekend::{degrees_to_radians, INFINITY},
+    vec3::Vec3,
+};
 
 pub struct HitRecord<'a> {
     pub p: Point3,
@@ -36,7 +43,7 @@ pub struct Translate {
 impl Translate {
     pub fn new(p: Box<dyn Hittable>, displacement: Vec3) -> Self {
         let bbox = p.bounding_box();
-        
+
         Self {
             object: p,
             offset: displacement,
@@ -150,10 +157,7 @@ impl Hittable for RotateY {
         }
     }
 
-    fn bounding_box(&self) -> Option<Aabb>{
+    fn bounding_box(&self) -> Option<Aabb> {
         Some(self.bbox)
     }
 }
-
-
-

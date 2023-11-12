@@ -1,7 +1,6 @@
-
-
-use crate::{hittable::*, interval::Interval, ray::*, vec3::*, material::Material, aabb::Aabb, rtweekend::PI};
-
+use crate::{
+    aabb::Aabb, hittable::*, interval::Interval, material::Material, ray::*, rtweekend::PI, vec3::*,
+};
 
 #[derive(Clone, Copy)]
 pub struct Sphere<M: Material> {
@@ -13,7 +12,7 @@ pub struct Sphere<M: Material> {
     bbox: Aabb,
 }
 
-impl <M: Material>Sphere<M> {
+impl<M: Material> Sphere<M> {
     pub fn new(center1: Vec3, center2: Vec3, radius: f64, mat: M, is_moving: bool) -> Self {
         let rvec = Vec3::new(radius, radius, radius);
         match is_moving {
@@ -36,7 +35,7 @@ impl <M: Material>Sphere<M> {
                     let box1 = Aabb::new_from_points(center1 - rvec, center1 + rvec);
                     let box2 = Aabb::new_from_points(center2 - rvec, center2 + rvec);
                     Aabb::new_from_boxes(box1, box2)
-                }
+                },
             },
         }
     }
@@ -52,7 +51,7 @@ impl <M: Material>Sphere<M> {
     }
 }
 
-impl <M: Material>Hittable for Sphere <M> {
+impl<M: Material> Hittable for Sphere<M> {
     fn hit(&self, r: &Ray, ray_t: &Interval) -> Option<HitRecord> {
         let center = if self.is_moving {
             self.sphere_center(r.time())
@@ -84,11 +83,18 @@ impl <M: Material>Hittable for Sphere <M> {
         let (normal, front_face) = HitRecord::set_face_normal(r, outward_normal);
         let (u, v) = Self::get_sphere_uv(outward_normal);
 
-        Some(HitRecord { p, normal, t, front_face, mat: &self.mat, u, v })
+        Some(HitRecord {
+            p,
+            normal,
+            t,
+            front_face,
+            mat: &self.mat,
+            u,
+            v,
+        })
     }
 
     fn bounding_box(&self) -> Option<Aabb> {
-       Some(self.bbox)
+        Some(self.bbox)
     }
 }
-

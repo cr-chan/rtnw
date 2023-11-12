@@ -1,13 +1,17 @@
 use crate::{
+    bvh::Bvh,
     camera::Camera,
     color::Color,
+    constant_medium::ConstantMedium,
+    hittable::{RotateY, Translate},
     list::HittableList,
-    material::{Dielectric, Lambertian, Metal, DiffuseLight, Isotropic},
+    material::{Dielectric, DiffuseLight, Isotropic, Lambertian, Metal},
+    quads::Quad,
     ray::Point3,
     rtweekend::{random_double, random_double_range},
     sphere::Sphere,
-    texture::{CheckerTexture, SolidColor, ImageTexture, NoiseTexture},
-    vec3::Vec3, quads::Quad, hittable::{RotateY, Translate}, bvh::Bvh, constant_medium::ConstantMedium,
+    texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor},
+    vec3::Vec3,
 };
 
 pub fn random_spheres() -> Vec<(i32, i32, i32)> {
@@ -103,6 +107,8 @@ pub fn random_spheres() -> Vec<(i32, i32, i32)> {
         false,
     ));
 
+    world = HittableList::new(Box::new(Bvh::new(world)));
+
     let mut camera = Camera::default();
 
     camera.aspect_ratio = 16.0 / 9.0;
@@ -166,15 +172,9 @@ pub fn two_spheres() -> Vec<(i32, i32, i32)> {
 pub fn earth() -> Vec<(i32, i32, i32)> {
     let mut world = HittableList::default();
 
-    let earth_texture = ImageTexture::new("earthmap.jpg");
+    let earth_texture = ImageTexture::new("world.jpg");
     let earth_surface = Lambertian::new(earth_texture);
-    let globe = Sphere::new(
-        Vec3::default(),
-        Vec3::default(),
-        2.0,
-        earth_surface,
-        false,
-    );
+    let globe = Sphere::new(Vec3::default(), Vec3::default(), 2.0, earth_surface, false);
     world.add(globe);
 
     let mut camera = Camera::default();
@@ -206,7 +206,6 @@ pub fn two_perlin_spheres() -> Vec<(i32, i32, i32)> {
         false,
     ));
 
-
     let pertext2 = NoiseTexture::new(4.0);
     world.add(Sphere::new(
         Point3::new(0.0, 2.0, 0.0),
@@ -228,8 +227,6 @@ pub fn two_perlin_spheres() -> Vec<(i32, i32, i32)> {
     camera.lookat = Point3::new(0.0, 0.0, 0.0);
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
-
-    
 
     camera.render(&world)
 }
@@ -304,7 +301,7 @@ pub fn simple_light() -> Vec<(i32, i32, i32)> {
         Vec3::default(),
         1000.0,
         Lambertian::new(pertext1),
-        false
+        false,
     ));
 
     let pertext2 = NoiseTexture::new(4.0);
@@ -313,7 +310,7 @@ pub fn simple_light() -> Vec<(i32, i32, i32)> {
         Vec3::default(),
         2.0,
         Lambertian::new(pertext2),
-        false
+        false,
     ));
 
     let difflight1 = DiffuseLight::new(SolidColor::new(Color::new(4.0, 4.0, 4.0)));
@@ -331,7 +328,7 @@ pub fn simple_light() -> Vec<(i32, i32, i32)> {
         Vec3::default(),
         2.0,
         difflight2,
-        false
+        false,
     ));
 
     let mut camera = Camera::default();
@@ -433,8 +430,6 @@ pub fn cornell_box() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    
-
     camera.render(&world)
 }
 
@@ -499,12 +494,12 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
     ));
 
     let mut boundary = Sphere::new(
-        Point3::new(360.0, 150.0, 145.0), 
+        Point3::new(360.0, 150.0, 145.0),
         Vec3::default(),
-         70.0, 
-         Dielectric::new(1.5), 
-         false
-        );
+        70.0,
+        Dielectric::new(1.5),
+        false,
+    );
 
     world.add(boundary);
 
@@ -515,7 +510,7 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
     ));
 
     boundary = Sphere::new(
-        Point3::new(0.0, 0.0, 0.0), 
+        Point3::new(0.0, 0.0, 0.0),
         Vec3::default(),
         5000.0,
         Dielectric::new(1.5),
@@ -535,30 +530,28 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
         Vec3::default(),
         80.0,
         Lambertian::new(pertext),
-        false
+        false,
     ));
 
-    let emat = Lambertian::new(ImageTexture::new("earthmap.jpg"));
+    let emat = Lambertian::new(ImageTexture::new("world.jpg"));
     world.add(Sphere::new(
         Point3::new(400.0, 200.0, 400.0),
         Vec3::default(),
         100.0,
         emat,
-        false
+        false,
     ));
 
     let mut boxes2 = HittableList::default();
     let white = Lambertian::new(SolidColor::new(Color::new(0.73, 0.73, 0.73)));
 
-    let ns = 1000;
-
-    for _ in 0..ns {
+    for _ in 0..1000 {
         boxes2.add(Sphere::new(
             Point3::random_range(0.0, 165.0),
             Vec3::default(),
             10.0,
             white,
-            false
+            false,
         ));
     }
 
@@ -572,7 +565,7 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
     camera.aspect_ratio = 1.0;
     camera.image_width = 800;
     camera.samples_per_pixel = 1000;
-    camera.max_depth = 40;
+    camera.max_depth = 50;
     camera.background = Color::new(0.0, 0.0, 0.0);
     camera.vfov = 40.0;
     camera.lookfrom = Point3::new(478.0, 278.0, -600.0);
@@ -580,11 +573,5 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
     camera.vup = Vec3::new(0.0, 1.0, 0.0);
     camera.defocus_angle = 0.0;
 
-    
-
     camera.render(&world)
 }
-
-
-
-

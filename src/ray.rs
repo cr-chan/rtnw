@@ -11,7 +11,11 @@ pub type Point3 = Vec3;
 
 impl Ray {
     pub fn new(origin: Vec3, direction: Vec3) -> Ray {
-        Ray { origin, direction, time: 0.0 }
+        Ray {
+            origin,
+            direction,
+            time: 0.0,
+        }
     }
 
     pub fn new_with_time(origin: Vec3, direction: Vec3, time: f64) -> Ray {
@@ -25,7 +29,7 @@ impl Ray {
     pub fn origin(&self) -> Vec3 {
         self.origin
     }
-    
+
     pub fn direction(&self) -> Vec3 {
         self.direction
     }
