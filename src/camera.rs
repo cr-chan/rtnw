@@ -71,7 +71,6 @@ impl Camera {
         let collection = (0..self.image_height)
             .into_par_iter()
             .map(|j| {
-                eprintln!("\rScanlines remaining: {}", self.image_height - j);
                 (0..self.image_width)
                     .into_par_iter()
                     .map(|i| {
