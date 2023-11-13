@@ -1,5 +1,7 @@
+use image::io::Reader;
+
 use crate::{
-    color::Color, interval::Interval, perlin::Perlin, ray::Point3, rtimage::RtwImage, vec3::Vec3,
+    color::Color, interval::Interval, perlin::Perlin, ray::Point3, vec3::Vec3,
 };
 
 pub trait Texture: Sync {
@@ -64,28 +66,61 @@ impl<O: Texture, E: Texture> Texture for CheckerTexture<O, E> {
 
 #[derive(Clone)]
 pub struct ImageTexture {
-    image: RtwImage,
+    data: Vec<u8>,
+    image_width: usize,
+    image_height: usize,
+    bytes_per_scanline: usize,
 }
 
 impl ImageTexture {
-    pub fn new(filname: &str) -> Self {
+    pub fn new(filename: &str) -> Self {
+        let open = match Reader::open(filename) {
+            Ok(image) => image,
+            Err(_) => panic!("ERROR: Could not load image file \"{}\".", filename),
+        };
+
+        let decode = match open.decode() {
+            Ok(image) => image.to_rgb8(),
+            Err(_) => panic!("ERROR: Could not decode image file \"{}\".", filename),
+        };
+
+        let (width, height) = decode.dimensions();
+
+        let data = decode.into_raw();
+
         Self {
-            image: RtwImage::new(filname),
+            data,
+            image_width: width as usize,
+            image_height: height as usize,
+            bytes_per_scanline: (width * 3) as usize,
         }
+    }
+
+    fn clamp(x: usize, low: usize, high: usize) -> usize {
+        std::cmp::max(low, std::cmp::min(x, high - 1))
     }
 }
 
 impl Texture for ImageTexture {
     fn value(&self, u: f64, v: f64, _p: Point3) -> Color {
-        if self.image.height() == 0 {
+        if self.image_height == 0 {
             return Color::new(0.0, 1.0, 1.0);
         }
         let u = Interval::new(0.0, 1.0).clamp(u);
         let v = 1.0 - Interval::new(0.0, 1.0).clamp(v);
 
-        let i = (u * self.image.width() as f64) as usize;
-        let j = (v * self.image.height() as f64) as usize;
-        let pixel = self.image.pixel_data(i, j);
+        let i = (u * self.image_width as f64) as usize;
+        let j = (v * self.image_height as f64) as usize;
+
+        let pixel = if !self.data.is_empty() {
+            let x = Self::clamp(i, 0, self.image_width);
+            let y = Self::clamp(j, 0, self.image_height);
+            let start = (y * self.bytes_per_scanline) + (x * 3);
+
+            &self.data[start..start + 3]
+        } else {
+            &[255, 0, 255]
+        };
 
         let color_scale = 1.0 / 255.0;
         Color::new(

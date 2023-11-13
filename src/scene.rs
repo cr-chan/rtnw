@@ -1,3 +1,5 @@
+use image::io::Reader;
+
 use crate::{
     bvh::Bvh,
     camera::Camera,
@@ -10,7 +12,7 @@ use crate::{
     ray::Point3,
     rtweekend::{random_double, random_double_range},
     sphere::Sphere,
-    texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor},
+    texture::{CheckerTexture, ImageTexture, NoiseTexture, SolidColor, Texture},
     vec3::Vec3,
 };
 
@@ -533,7 +535,9 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
         false,
     ));
 
-    let emat = Lambertian::new(ImageTexture::new("world.jpg"));
+    let image = ImageTexture::new("world.jpg");
+
+    let emat = Lambertian::new(image);
     world.add(Sphere::new(
         Point3::new(400.0, 200.0, 400.0),
         Vec3::default(),
@@ -564,7 +568,7 @@ pub fn final_scene() -> Vec<(i32, i32, i32)> {
 
     camera.aspect_ratio = 1.0;
     camera.image_width = 800;
-    camera.samples_per_pixel = 1000;
+    camera.samples_per_pixel = 100;
     camera.max_depth = 50;
     camera.background = Color::new(0.0, 0.0, 0.0);
     camera.vfov = 40.0;

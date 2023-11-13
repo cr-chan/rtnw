@@ -14,7 +14,6 @@ mod material;
 mod perlin;
 mod quads;
 mod ray;
-mod rtimage;
 mod rtweekend;
 mod scene;
 mod sphere;
