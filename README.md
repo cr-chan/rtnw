@@ -4,6 +4,8 @@ It is a Rust implementation of ["Ray Tracing: The Next Week" by Peter Shirley](h
 
 i found it helpful [cbiffle's implementation](https://github.com/cbiffle/rtiow-rust) when i encountered some problems in optimization.
 
+it still has some mistakes so far
+
 ## Some improvements
 
 1. the render loop runs parallelly by using the [rayon](https://crates.io/crates/rayon) crates.
